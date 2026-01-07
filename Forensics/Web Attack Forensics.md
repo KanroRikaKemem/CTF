@@ -647,7 +647,8 @@ Apache-Error: [file "apache2_util.c"] [line 271] [level 3] [client 172.17.0.1] M
     - `user1' union select username, email, password from users #`
     ![image](https://hackmd.io/_uploads/SkTQqsoEWe.png)
 
-Chúng ta dùng payload đầu tiên để check rằng nếu web app dính lỗ hổng SQLi và payload thứ hai để xuất user's passwords từ database.
+    Chúng ta dùng payload đầu tiên để check rằng nếu web app dính lỗ hổng SQLi và payload thứ hai để xuất user's passwords từ database.
+
 - Cả hai đều là POST requests, có thể check logs trong file `error.log`:
 ![image](https://hackmd.io/_uploads/HJGq9oiVbx.png)
 - Có thể thấy rằng, chạy lệnh `cat` với `grep` cho ta thấy trực tiếp hai sự cố SQLi được tdò ra bởi WAF. Chi tiết audit logs cho hai sự tìm thấy này có thể xem trong file `modsec_audit.log`.
