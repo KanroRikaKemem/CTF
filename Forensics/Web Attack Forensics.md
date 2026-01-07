@@ -590,11 +590,9 @@ Engine-Mode: "DETECTION_ONLY"
 > Thuật ngữ RCE có thể thay thế giữa Remote Command Execution và Remote Code Execution, nhưng cả hai đều nhắc tới một lỗ hổng cho phép một attacker thực thi code và/hoặc commands remotely.
 - Đi đến http://127.0.0.1:9090/command.php để thử nghiệm. Web app cho phép ta enter commands, thực thi chúng và quay lại output. Trong trường hợp không có security checks thích hợp, việc này có thể được exploited để thương lượng và tẩy đi toàn bộ hệ thống.
 - Để tạo logs trên server, thực thi các commands sau theo thứ tự trên http://127.0.0.1:9090/command.php:
-```
-id
-cat /etc/passwd
-cat /etc/shadow
-```
+    - `id`
+    - `cat /etc/passwd`
+    - `cat /etc/shadow`
 - Kiểm tra `access.log`:
 ![image](https://hackmd.io/_uploads/S11RY9sEbg.png)
 Có thể thấy rằng, logs chỉ show duy nhất requests và không tiết lộ commands được input bởi user vì đó là requests GET và POST. Đây là nơi WAF thực hiện hai vai trò là request và response body. Vì vậy, để xem commands nào được input bởi user vào làm cách nào web app respond, ta xem xét WAF logs.
