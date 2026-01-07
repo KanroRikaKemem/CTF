@@ -402,6 +402,113 @@ I have obtained information regarding a top secret mission. The details are high
 ##### Kết quả:
 `flag{h1dd3n_1n_th3_n01s3}`
 
+### 4. Lab 04:
+- The logs can be downloaded from https://github.com/vonderchild/digital-forensics-lab/tree/main/Lab%2004/files/logs.zip.
+- You are a cyber security specialist who has been called upon to investigate a major cyber security breach. The company's web server has been compromised, and the attacker has attempted to exploit multiple vulnerabilities. You've been given the task of piecing together the attacker's intentions and uncovering the extent of the damage. With that in mind, your challenge is to answer the following questions:
+> Trước khi làm ta cần phải set up môi trường:
+> ![image](https://hackmd.io/_uploads/BypBACoV-x.png)
+> ![image](https://hackmd.io/_uploads/rkaSy12E-g.png)
+
+#### 1. What IP address does the attack seem to be originating from?
+- Trong web server log, mỗi dòng thường bắt đầu bằng:
+```
+IP - - [time] "REQUEST" STATUS SIZE "REFERER" "USER-AGENT"
+```
+- Attacker thường gửi rất nhiều requests và requests sẽ độc hại hoặc bất thường nên ta sẽ đếm số request theo IP:
+![image](https://hackmd.io/_uploads/rkV2myhVZe.png)
+Với `awk '{print $1}'` để lấy IP, `uniq -c` để đếm và `sort -nr` để đẩy IP có số request nhiều nhất lên đầu. Kết quả là ta được output là IP `192.168.0.106` với số lần gửi request là `38`.
+- Để kiểm tra IP trên có request độc hại không: `grep 192.168.1.100 access.log | less` (`grep` để lọc log và `less` để xem nội dung từng trang):
+![image](https://hackmd.io/_uploads/HyIMWJnN-g.png)
+Từ output trên, ta thấy rất nhiều `../` và `/etc/passwd` nên đây có thể là tấn công LFI.
+
+**$\rightarrow$ Đáp án: `192.168.0.106`**
+
+#### 2. Which vulnerabilities do you think are being exploited, and what evidence do you have to support your findings?
+Từ câu 1, với các dấu hiệu như `../` và `/etc/passwd` nên đây có thể là tấn công LFI.
+**$\rightarrow$ Đáp án: `Local File Inclusion (LFI)`**
+
+#### 3. How can we determine what web browser the attacker is using?
+- Ta cần xác định User-Agent. Các HTTP Header sẽ có dạng: `User-Agent: Mozilla/5.0 ...`
+- Từ output ở câu 1, có thể thấy rằng ở cuối các request là `Firefox`.
+
+**$\rightarrow$ Đáp án: `Firefox`**
+
+#### 4. Did the attacker use any automated tools during the attack? If so, can you identify the name of the tool and its purpose?
+- Ta có bảng sau:
+
+| Tool     | User-Agent | Mục đích        |
+| -------- | ---------- | --------------- |
+| sqlmap   | `sqlmap`   | SQL Injection   |
+| Nikto    | `Nikto`    | Scan web        |
+| gobuster | `gobuster` | Directory brute |
+| curl     | `curl/`    | Manual/Script |
+
+- Từ ouput của câu 1, có thể thấy các dòng như:
+```
+192.168.0.106 - - [16/Feb/2023:01:36:55 +0500] "GET /users.php HTTP/1.1" 200 1117 "-" "sqlmap/1.6.11#stable (https://sqlmap.org)"
+```
+- Ngoài ra ta có thể dùng: `grep -i "sqlmap\|nikto\|curl\|python" access.log`:
+![image](https://hackmd.io/_uploads/SkT2HynV-x.png)
+
+**$\rightarrow$ Đáp án: `sqlmap` với mục đích là SQLi**
+
+#### 5. Which file was the attacker trying to access but couldn't due to limited server access?
+- Trong output có hai dòng:
+```
+192.168.0.106 - - [16/Feb/2023:01:36:02 +0500] "GET /d.php HTTP/1.1" 404 494 "-" "Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0"
+192.168.0.106 - - [16/Feb/2023:01:36:07 +0500] "GET /database.php HTTP/1.1" 404 494 "-" "Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0"
+```
+- Ngoài ra có thể dùng cách:
+![image](https://hackmd.io/_uploads/HyEEwJ24Ze.png)
+
+**$\rightarrow$ Đáp án: `GET /d.php HTTP/1.1`, `GET /database.php HTTP/1.1`**
+
+#### 6. Did the attacker gain access to any confidential data? If yes, how much data was compromised?
+- Ta xem thử có request `200 OK` không, và từ output ở câu 1 ta thấy có rất nhiều nhưng lọc kĩ hơn:
+![image](https://hackmd.io/_uploads/Bk_fjy2VZl.png)
+Có thể thấy rằng lượng data là rất nhiều .-.
+- Ngoài ra để xem thử xem có file nào nhạy cảm:
+![image](https://hackmd.io/_uploads/HJ7Mu13Ebx.png)
+
+#### 7. An important secret was compromised. Can you figure it out?
+> Hint: The secret you're looking for is not in a `.sql` or a `.php` file.
+- Trong output, ta thấy có dòng:
+```
+192.168.0.106 - - [16/Feb/2023:01:37:49 +0500] "GET /view.php?image=../../../../../../../../../important_note.txt HTTP/1.1" 200 501 "http://192.168.0.101:9090/images.php" "Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0"
+```
+Có thể thấy rằng attacker không đọc được secret bằng `images.php` nên dùng LFI để chuyển sang `view.php` rồi dùng LFI và đã thành công.
+**$\rightarrow$ Đáp án: `important_note.txt`, `501 bytes`**
+
+#### 8. The attacker left a message for the server administrator. Find out what the message said, and also mention how you were able to find it.
+- Message khả năng cao nằm trong `important_note.txt`. Thông thường `modsec_audit.log` sẽ có thể ghi request, response body và payload nên ta tìm dấu hiệu của file `important_note.txt` trong log này bằng `grep -i "important_note" modsec_audit.log` và output rất dài .-.
+- Đọc thử từng trang trong log này bằng `less modsec_audit.log`, và sau khi lướt mỏi tay thì:
+![image](https://hackmd.io/_uploads/BJ7Jfg24-g.png)
+
+**$\rightarrow$ Đáp án:**
+```
+Hey there! Just a heads up - if we don't add security checks to our web app, our top-secret files might as well be written on a billboard. And trust me, we don't want that kind of attention. So let's get those checks in place, okay? We wouldn't want the world to know that our password is 'sup3r_s3cr3t_4nd_1mp0rt4nt_p4ssw0rd', now would we? ;)
+```
+
+#### 9. What were some indicators that confirmed that an attack had taken place? What were your key takeaways from this attack?
+- Có rất nhiều dấu hiệu, như các dấu hiệu thấy được khi giải các câu trên hay cảnh báo trong `less modsec_audit.log`:
+![Ảnh chụp màn hình 2026-01-07 213504](https://hackmd.io/_uploads/Bke6zlhEbx.png)
+Và quan trọng nhất là ta đã thấy lời nhắn mà attackers để lại :DD
+- Các bài học học được:
+    - Lỗi xác thực dữ liệu đầu vào có thể dẫn đến các lỗ hổng nghiêm trọng như LFI.
+    - Các tệp văn bản đơn giản cũng có thể chứa thông tin nhạy cảm và cần được bảo vệ.
+    - Các tool như sqlmap làm tăng tốc độ và tác động của một cuộc tấn công.
+    - Web server log là bằng chứng quan trọng để tái tạo hành vi của attackẻ và xác định sự xâm nhập.
+
+#### 10. Based on this attack, what indicators of compromise can be used to detect future attacks?
+- Địa chỉ IP của attacker.
+- Các requests lặp đi lặp lại từ một địa chỉ IP trong một khoảng thời gian ngắn.
+- Các pattern URL chứa chuỗi duyệt thư mục (`../`, `%2F`).
+- Các requests cố gắng truy cập các tệp hệ thống như `/etc/passwd`, `/etc/shadow`,...
+- Các requests nhắm vào các endpoint nhạy cảm như `view.php`, `users.php` và `command.php`.
+- Chuỗi User-Agent liên kết với các công cụ tự động (`sqlmap/1.6.11`,...)
+- Các lần truy cập thất bại và thành công lặp đi lặp lại vào các file không công khai.
+- Requests POST bất thường với các commands quản trị hoặc backend.
+
 ## B. TryHackMe:
 ### I. Task 10 - Windows Forensics 1:
 *Link tham khảo: [TryHackMe](https://tryhackme.com/room/windowsforensics1)*
