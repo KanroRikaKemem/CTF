@@ -77,14 +77,13 @@ p = 3053185186199433325267593511148795069441433276390908351413376986135096089507
 
 ##### b) Phân tích cách làm:
 - Cơ sở lý thuyết:
-    - **Legendre Symbol:** $$
-\left( \frac{a}{p} \right) =
+    - **Legendre Symbol:**
+$$\left( \frac{a}{p} \right) =
 \begin{cases}
 0 & \text{nếu } a \equiv 0 \pmod{p} \\
 1 & \text{nếu } a \text{ là bình phương modulo } p \\
 -1 & \text{nếu } a \text{ không là bình phương modulo } p
-\end{cases}
-$$ Với $\frac{a}{p} \equiv a^{(p - 1)/2} \mod p$
+\end{cases}$$ Với $\frac{a}{p} \equiv a^{(p - 1)/2} \mod p$
     - **Tonelli - Shanks:** Áp dụng khi $p \equiv 1 \mod 4$ vì nếu $p \equiv 3 \mod 4$ thì ta sử dụng $x \equiv a^{(p + 1)/4} \mod p$
 - Xét $p \equiv 1 \mod 4$ hay $p - 1 = k.2^n$ (với $k$ lẻ), tìm $k$ và $n$ tương ứng.
 - Tìm số nguyên $i$ sao cho $(\frac{i}{p}) \neq -1$ ($n$ không phải bình phương chính phương modulo $p$, dùng để tạo căn ảo).
