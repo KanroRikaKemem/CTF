@@ -4,6 +4,7 @@
 - Tính $101^{17}\mod 22663$
 ##### b) Phân tích cách làm: 
 `*pow(base, exponent, modulus)`: Tính $base^{exponent}\mod modulus$.
+
 ![image](https://hackmd.io/_uploads/SJW2Pcumke.png)
 ##### c) Kết quả:
 `19906`
@@ -15,6 +16,7 @@
 - Tính **modular exponentiation** của $12$.
 ##### b) Phân tích cách làm:
 Tính $12^{65537} \mod N$
+
 ![image](https://hackmd.io/_uploads/rJrlsc_Xyx.png)
 ##### c) Kết quả:
 `301`
@@ -28,6 +30,7 @@ q = 1029224947942998075080348647219
 ##### b) Phân tích cách làm:
 - Euler's totient ø(N): Số lượng $k$ trong khoảng $1$ đến $N - 1$ sao cho $gcd(k, N) = 1$.
 - Khi $N = p.q$: $ø(N) = (p - 1).(q - 1)$
+
 ![image](https://hackmd.io/_uploads/BkQgysd7kl.png)
 ##### c) Kết quả: 
 `882564595536224140639625987657529300394956519977044270821168`
@@ -56,8 +59,10 @@ e = 65537
 ##### b) Phân tích cách làm:
 - Ta có: $$M \equiv c^d \mod N$$
 - Phân tích $N = p.q$ bằng factordb.com.
+
 ![image](https://hackmd.io/_uploads/HyEH1tqQ1x.png)
 - Source code:
+
 ![image](https://hackmd.io/_uploads/HJB5R_c71g.png)
 ##### *c) Kết quả:* 
 `13371337`
@@ -78,6 +83,7 @@ mex = "crypto{Immut4ble_m3ssag1ng}"
 N = 15216583654836731327639981224133918855895948374072384050848479908982286890731769486609085918857664046075375253168955058743185664390273058074450390236774324903305663479046566232967297765731625328029814055635316002591227570271271445226094919864475407884459980489638001092788574811554149774028950310695112688723853763743238753349782508121985338746755237819373178699343135091783992299561827389745132880022259873387524273298850340648779897909381979714026837172003953221052431217940632552930880000919436507245150726543040714721553361063311954285289857582079880295199632757829525723874753306371990452491305564061051059885803
 d = 11175901210643014262548222473449533091378848269490518850474399681690547281665059317155831692300453197335735728459259392366823302405685389586883670043744683993709123180805154631088513521456979317628012721881537154107239389466063136007337120599915456659758559300673444689263854921332185562706707573660658164991098457874495054854491474065039621922972671588299315846306069845169959451250821044417886630346229021305410340100401530146135418806544340908355106582089082980533651095594192031411679866134256418292249592135441145384466261279428795408721990564658703903787956958168449841491667690491585550160457893350536334242689
 ```
+
 ![image](https://hackmd.io/_uploads/rksQLUi7Je.png)
 
 ##### c) Kết quả:
@@ -93,6 +99,7 @@ d = 1117590121064301426254822247344953309137884826949051885047439968169054728166
 - Phân tích số $150$ bit `510143758735509025530880200653196460532653147` thành tích hai số nguyên tố, flag là số nhỏ hơn.
 ##### b) Phân tích cách làm:
 Dùng factordb.com:
+
 ![image](https://hackmd.io/_uploads/HJjYLlh7yl.png)
 ##### *c) Kết quả:* 
 `19704762736204164635843`
@@ -103,10 +110,13 @@ Cho file triển khai RSA mạnh $1600$ bit, gồm:
 + Public Key.
 ##### b) Phân tích cách làm:
 - Thông số được cho:
+
 ![image](https://hackmd.io/_uploads/SybX_x3mJe.png)
 - Phân tích $n = p.q$ bằng factordb.com:
+
 ![image](https://hackmd.io/_uploads/BJe9l9g2Q1e.png)
 - Dùng source có sẵn, đưa các thông số vào:
+
 ![image](https://hackmd.io/_uploads/BkSW2gnmkg.png)
 ##### c) Kết quả:
 `crypto{N33d_b1g_pR1m35}`
@@ -121,6 +131,7 @@ ct = 161367550346730604451454756189028938964941280347662098798775466019463375610
 ```
 ##### b) Phân tích cách làm:
 Tương tự bài trên, tìm được $p = q = n$ từ factordb.com:
+
 ![image](https://hackmd.io/_uploads/BJvjminQJe.png)
 ##### c) Kết quả: 
 `crypto{0n3_pr1m3_41n7_pr1m3_l0l}`
@@ -142,7 +153,8 @@ p = 2314866752199809772085716882779077133766248371634843547736056740935502616916
     - Phân tích **n** thành tích các thừa số nguyên tố $p_{1}$, $p_{2}$,..., $p_{n}$.
     - Công thức: **$ø(n) = n.(1 - \frac{1}{p_{1}}).(1 - \frac{1}{p_{2}})...(1 - \frac{1}{p_{n}})$**
     $\Rightarrow$ Trong trường hợp đề cho: $ø(n) = n.(1 - \frac{1}{p}) = p^2.(1 - \frac{1}{p}) = p.(p - 1)$
-- Tương tự bài trước: 
+- Tương tự bài trước:
+
 ![image](https://hackmd.io/_uploads/HJMWXsT7yx.png)
 ##### c) Kết quả: 
 `crypto{squar3_r00t_i5_f4st3r_th4n_f4ct0r1ng!}`
@@ -158,8 +170,10 @@ ct = 320721490534624434149993723527322977960556510750628354856260732098109692581
 ```
 ##### b) Phân tích cách làm:
 - Dùng factordb.com:
+
 ![image](https://hackmd.io/_uploads/B1yYVilEJl.png)
 - Ta có: $ø(n) = (p - 1)*(q - 1)$. Khai báo biến `phi_N = 1` và chạy vòng lặp duyệt từng phần tử trong các số nguyên tố vừa tìm được.
+
 ![image](https://hackmd.io/_uploads/rJEAwjxNyx.png)
 ##### c) Kết quả:
 `crypto{700_m4ny_5m4ll_f4c70r5}`
@@ -175,6 +189,7 @@ ct = 449812307182121836042747859257931454426554650252645540460282513111644941274
 ```
 ##### b) Phân tích cách làm:
 Phân tích $n = p.q$ bởi factordb.com, được $p = q$.
+
 ![image](https://hackmd.io/_uploads/Skdd70bVyl.png)
 ##### c) Kết quả:
 `crypto{saltstack_fell_for_this!}`
@@ -189,6 +204,7 @@ ct = 243251053617903760309941844835411292373350655973075480264001352919865180151
 ```
 ##### b) Phân tích cách làm:
 Công thức: $ct = pt^e (\mod n) \Rightarrow pt^e = ct%n$
+
 ![image](https://hackmd.io/_uploads/Hy9x00bVyl.png)
 ##### c) Kết quả:
 `crypto{N33d_m04R_p4dd1ng}`
@@ -203,8 +219,10 @@ c = 0x3f984ff5244f1836ed69361f29905ca1ae6b3dcf249133c398d7762f5e2779191746942939
 ```
 ##### b) Phân tích cách làm:
 - Thông số đề cho ở dạng hex nên cần chuyển về dạng số nguyên:
+
 ![image](https://hackmd.io/_uploads/rJV6zyM41x.png)
 - Phân tích $N$ thành tích các thừa số nguyên tố (factordb.com):
+
 ![image](https://hackmd.io/_uploads/ByKCzyGE1g.png)
 Ta được:
 ```py
@@ -212,8 +230,10 @@ p = 1346699277091280707564248014195488055018080769122628014348006059208276124643
 q = 173121513995818161102245832683211062320154182361182024148671930683926870711405647497524667705258311163551127156955342410807842326402024536548989691926348678692995530897791794818646241971728281417961389048493180792474943296919266335463768525410560161755731138916915767148609523790355387780727531897114371948649
 ```
 - Tương tự bài trước:
+
 ![image](https://hackmd.io/_uploads/B1NyEJfE1l.png)
 - Đầy đủ:
+
 ![image](https://hackmd.io/_uploads/SJ-b4yfE1l.png)
 ##### c) Kết quả:
 `crypto{s0m3th1ng5_c4n_b3_t00_b1g}`
@@ -888,6 +908,7 @@ listener.start_server(port=13391)
 - Đây là server kiểm tra chữ kí số.
 - Kết nối server trên Ubuntu để lấy `SIGNATURE`.
 - Cần chú ý đoạn:
+
 ![image](https://hackmd.io/_uploads/Skmo1PIh1e.png)
 - Từ source code trên: $$digest = calculated_-digest = SIGNATURE^e \mod N$$ Vì có thể nhập $N$ và $e$ tuỳ ý nên để đơn giản, chọn $e = 1$. Khi đó: $$digest = SIGNATURE \mod N$$ Tương đương: $$(SIGNATURE - digest \mod N) = 0$$ Suy ra: $$kN = SIGNATTURE - digest$$ Chọn $k = 1$, khi đó: $$N = SIGNATTURE - digest$$
 - Tiếp tục kết nối server: 
