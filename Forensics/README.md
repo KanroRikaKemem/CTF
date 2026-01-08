@@ -19,6 +19,7 @@
     - Application: Phân tích dữ liệu từ ứng dụng như các file log, file cấu hình, reverse ứng dụng,...
     - Network: Phân tích gói tin mạng, sự bất thường trong mạng.
     - Memory: Phân tích dữ liệu trên bộ nhớ, thượng là dữ liệu trên RAM được dump ra.
+- Một số tools hữu ích của Eric Zimmerman: [Eric Zimmerman's tools](https://ericzimmerman.github.io/#!index.md)
 
 ### I. Common Windows Artifacts:
 [Link write - up](https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/B1FRjpblZe)
@@ -59,7 +60,6 @@
     - `ls -lt`: Sắp xếp theo thời gian sửa đổi (mới nhất ở trên).
     - `ls -R`: Liệt kê đệ quy, bao gồm nội dung trong các thư mục con.
 - Ví dụ:
-::: spoiler `ls`
 ``` ubuntu
 kanrorikakemem@DESKTOP-ICMNRNE:/mnt/c/Users/Ha Nguyen/Documents/Ngon_ngu_lap_trinh/Cpp/Bai_tap/Giai_bai_tap$ ls
 tempCodeRunnerFile.python  test.cpp  test.exe  test.py  test1.py  venv
@@ -140,7 +140,6 @@ total 156
 drwxrwxrwx 1 kanrorikakemem kanrorikakemem    512 Oct  9 21:32 venv
 -rwxrwxrwx 1 kanrorikakemem kanrorikakemem   2847 Sep 29 23:35 tempCodeRunnerFile.python
 ```
-:::
 
 ### 3. Xem nội dung, ghép hoặc tạo tệp văn bản:
 - Command cơ bản: `cat [tuỳ chọn] [tên tệp]`
