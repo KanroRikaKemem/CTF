@@ -1478,7 +1478,7 @@ Chrome lưu trữ dữ liệu (mật khẩu đã lưu, cookies và nhiều thôn
 ![image](https://hackmd.io/_uploads/rkP-5BWmZl.png)
 **$\rightarrow$ Đáp án cần điền là `palominoalpacafarm.com`.**
 
-## D. Hack The Box:
+## E. Hack The Box:
 ### Packet Puzzle:
 - [Link bài lab](https://app.hackthebox.com/sherlocks/Packet%2520Puzzle?tab=play_sherlock)
 - Đề bài: *"You are a junior security analyst at a small Japanese cryptocurrency trading company. After detecting suspicious activity on the internal network, you exported a PCAP for further investigation. Analyze this capture to determine whether the environment was compromised and reconstruct the attacker’s actions."*
