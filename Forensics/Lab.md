@@ -1478,6 +1478,73 @@ Chrome lưu trữ dữ liệu (mật khẩu đã lưu, cookies và nhiều thôn
 ![image](https://hackmd.io/_uploads/rkP-5BWmZl.png)
 **$\rightarrow$ Đáp án cần điền là `palominoalpacafarm.com`.**
 
+### II. Web Investigation Lab:
+> - [Link bài lab](https://cyberdefenders.org/blueteam-ctf-challenges/web-investigation/)
+> - Kịch bản:
+>![image](https://hackmd.io/_uploads/r1wHmOf8-g.png)
+> - File được cho: `WebInvestigation.pcap`
+
+**1. By knowing the attacker's IP, we can analyze all logs and actions related to that IP and determine the extent of the attack, the duration of the attack, and the techniques used. Can you provide the attacker's IP?**
+- Vào `Statistics` $\rightarrow$ `Conservations` $\rightarrow$ `IPv4` rồi tìm IP nào có số bytes hay packet lớn bất thường:
+![image](https://hackmd.io/_uploads/ByH6UsELZe.png)
+**$\rightarrow$ Đáp án: `111.224.250.131`**
+
+**2. If the geographical origin of an IP address is known to be from a region that has no business or expected traffic with our network, this can be an indicator of a targeted attack. Can you determine the origin city of the attacker?**
+- Vì đây không phải địa chỉ IP của LAN nên vào trang web https://whatismyipaddress.com và điền địa chỉ IP vừa tìm:
+![image](https://hackmd.io/_uploads/SkgXgsjVIZg.png)
+**$\rightarrow$ Đáp án: `Shijiazhuang`**
+
+**3. Identifying the exploited script allows security teams to understand exactly which vulnerability was used in the attack. This knowledge is critical for finding the appropriate patch or workaround to close the security gap and prevent future exploitation. Can you provide the vulnerable PHP script name?**
+- Vì tệp cần tìm là `.php` nên attaker sẽ dùng POST hoặc GET, lọc `http.request.method == "POST" || http.request.uri contains ".php"`:
+![image](https://hackmd.io/_uploads/Sk2jJh4Ibx.png)
+Có thể thấy rằng `search.php` bị lạm dụng rất nhiều.
+
+**$\rightarrow$ Đáp án: `search.php`**
+
+**4. Establishing the timeline of an attack, starting from the initial exploitation attempt, what is the complete request URI of the first SQLi attempt by the attacker?**
+> Note: Decode the Value.
+- Lướt xuống dưới, ở gói tin 357 và URL decode:
+![image](https://hackmd.io/_uploads/S1DNW2N8bg.png)
+**$\rightarrow$ Đáp án: `/search.php?search=book and 1=1; -- -`**
+
+**5. Can you provide the complete request URI that was used to read the web server's available databases?**
+> Note: Decode the Value.
+- Để đọc các database có sẵn, thường attacker dùng `SELECT` để nhắm vào `information_schema.schemata`, `information_schema.tables`. Thử URL decode từng gói tin và ở gói 1520 ta tìm được đáp án.
+
+**$\rightarrow$ Đáp án:**
+```
+/search.php?search=book' UNION ALL SELECT NULL,CONCAT(0x7178766271,JSON_ARRAYAGG(CONCAT_WS(0x7a76676a636b,schema_name)),0x7176706a71) FROM INFORMATION_SCHEMA.SCHEMATA-- -`
+```
+
+**6. Assessing the impact of the breach and data access is crucial, including the potential harm to the organization's reputation. What's the table name containing the website users data?**
+- Lọc `http.request.uri contains "INFORMATION_SCHEMA.TABLES"` và ta thấy được hai gói tin là request và response của nhau. Chuột phải chọn `Folow` $\rightarrow$ `HTTP Stream`:
+![image](https://hackmd.io/_uploads/r1rU2hVIZe.png)
+
+**$\rightarrow$ Đáp án: `/customers`**
+
+**7. The website directories hidden from the public could serve as an unauthorized access point or contain sensitive functionalities not intended for public access. Can you provide the name of the directory discovered by the attacker?**
+- `GET` thường để lại dấu vết trên URL, còn `POST` thường được dùng để giấu các payload nặng hay để thay đổi dữ liệu:
+    - Tấn công SQLi phức tạp hoặc chèn mã độc dài thường được gửi qua POST để tránh giới hạn độ dài của URL.
+    - Attacker thường gửi thông tin đăng nhập qua `POST`, nếu thấy nó hướng đến `/admin/login.php` hay `/development/auth.php` thì đó là brute force.
+- Lọc `http.request.method == POST`:
+![image](https://hackmd.io/_uploads/Hy52KUP8-e.png)
+**$\rightarrow$ Đáp án: `/admin/`**
+
+**8. Knowing which credentials were used allows us to determine the extent of account compromise. What are the credentials used by the attacker for logging in?**
+- Xem thử HTTP Stream của từng gói, có thể thấy attacker brute force username và password:
+![image](https://hackmd.io/_uploads/H13b0IDI-l.png)
+- Ở gói 88699 server trả về `302 Found` nghĩa là đăng nhập thành công:
+![image](https://hackmd.io/_uploads/ryqGgvv8Zx.png)
+- URL code chuỗi `username=admin&password=admin123%21` thì được `username=admin&password=admin123!`.
+
+**$\rightarrow$ Đáp án: `admin:admin123!`**
+
+**9. We need to determine if the attacker gained further access or control of our web server. What's the name of the malicious script uploaded by the attacker?**
+- Sau khi đăng nhập thành công, attacker sẽ được chuyển tới `/admin/index.php`. Xem HTTP của gói tin 88757:
+![image](https://hackmd.io/_uploads/ByuIyPw8We.png)
+
+**$\rightarrow$ Đáp án: `NVri2vhp.php`**
+
 ## E. Hack The Box:
 ### Packet Puzzle:
 - [Link bài lab](https://app.hackthebox.com/sherlocks/Packet%2520Puzzle?tab=play_sherlock)
