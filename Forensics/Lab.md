@@ -1545,6 +1545,119 @@ Có thể thấy rằng `search.php` bị lạm dụng rất nhiều.
 
 **$\rightarrow$ Đáp án: `NVri2vhp.php`**
 
+### III. BlueSky Ransomware Lab:
+> - [Link bài lab](https://cyberdefenders.org/blueteam-ctf-challenges/bluesky-ransomware/)
+> - Đề bài:
+> ![image](https://hackmd.io/_uploads/S1n2fPwU-l.png)
+> - File được cho: `BlueSkyRansomware.evtx`, `BlueSkyRansomware.pcap`
+
+**1. Knowing the source IP of the attack allows security teams to respond to potential threats quickly. Can you identify the source IP responsible for potential port scanning activity?**
+- Vào Wireshark mở file, sau đó vào `Statistics` $\rightarrow$ `Conservations` $\rightarrow$ `IPv4` rồi tìm IP nào có số bytes hay packet lớn bất thường:
+![image](https://hackmd.io/_uploads/SyvJzyKL-g.png)
+**$\rightarrow$ Đáp án: `87.96.21.84`**
+
+**2. During the investigation, it's essential to determine the account targeted by the attacker. Can you identify the targeted account username?**
+- Thử lọc string `username` thì gói tin 2641 được highlight. Kiểm tra packet details:
+
+![image](https://hackmd.io/_uploads/HJGewkKIZl.png)
+
+**$\rightarrow$ Đáp án: `sa`**
+
+**3. We need to determine if the attacker succeeded in gaining access. Can you provide the correct password discovered by the attacker?**
+
+Từ output câu trên, ta tìm được cả password.
+
+**$\rightarrow$ Đáp án: `cyb3rd3f3nd3r$`**
+
+**4. Attackers often change some settings to facilitate lateral movement within a network. What setting did the attacker enable to control the target host further and execute further commands?**
+- TDS (Tabular Data Stream) là một giao thức tầng ứng dụng (Application Layer) phổ biến database, thường dùng để kết nối app với hệ quản trị database.
+    - Gửi đi: Đóng gói mã SQL từ user gửi đến server.
+    - Phản hồi: Đóng gói kết quả (các bảng dữ liệu, thông báo lỗi hoặc số dòng bị ảnh hưởng) từ server gửi user.
+- Check TDS trong packet details của hai gói tin response sau gói 2641. Ở gói 2645:
+![image](https://hackmd.io/_uploads/SkPqtkYIZx.png)
+**$\rightarrow$ Đáp án: `xp_cmdshell`**
+
+**5. Process injection is often used by attackers to escalate privileges within a system. What process did the attacker inject the C2 into to gain administrative privileges?**
+- Vào file `BlueSkyRansomware.evtx`, trong `Saved Logs` ở phần liên quan đến PowerShell:
+![image](https://hackmd.io/_uploads/r1T0oyKLbe.png)
+`msfconsole` là giao thức giao diện dòng lệnh (CLI) phổ biến và mạnh mẽ nhất của Metasploit Framework, hacker thường dùng để khai thác lỗ hổng.
+
+**$\rightarrow$ Đáp án: `winlogon.exe`**
+
+**6. Following privilege escalation, the attacker attempted to download a file. Can you identify the URL of this file downloaded?**
+- Hầu hết các file được tải qua HTTP, nên ta lọc `http.request.method == "GET"`:
+![image](https://hackmd.io/_uploads/r1ZVRJK8bl.png)
+- Thử kiểm tra packet details của gói tin đầu:
+![image](https://hackmd.io/_uploads/rJHBegFIbx.png)
+
+**$\rightarrow$ Đáp án: `http://87.96.21.84/checking.ps1`**
+
+**7. Understanding which group Security Identifier (SID) the malicious script checks to verify the current user's privileges can provide insights into the attacker's intentions. Can you provide the specific Group SID that is being checked?**
+- Kiểm tra TCP Stream của gói tin vừa rồi:
+![image](https://hackmd.io/_uploads/S1uUMgKIbx.png)
+**$\rightarrow$ Đáp án: `S-1-5-32-544`**
+
+**8. Windows Defender plays a critical role in defending against cyber threats. If an attacker disables it, the system becomes more vulnerable to further attacks. What are the registry keys used by the attacker to disable Windows Defender functionalities? Provide them in the same order found.**
+- Nếu attaker dùng cmd để vô hiệu hoá Windows Defender, thử lọc `tcp contains "reg add" || tcp contains "DisableAntiSpyware"` (command này quét toàn bộ dữ liệu TCP để tìm string liên quan đến lệnh Registry hoặc tên khóa):
+![image](https://hackmd.io/_uploads/HkU44ltUbl.png)
+- Kiểm tra TCP Stream của gói tin:
+![image](https://hackmd.io/_uploads/H1JFVlt8Wx.png)
+**$\rightarrow$ Đáp án:**
+```
+DisableAntiSpyware,DisableRoutinelyTakingAction,DisableRealtimeMonitoring,SubmitSamplesConsent,SpynetReporting
+```
+
+**9. Can you determine the URL of the second file downloaded by the attacker?**
+- Tiếp tục kiểm tra TCP Stream của gói tin đầu tiên sau khi lọc `http.request.method == "GET"`:
+![image](https://hackmd.io/_uploads/BkQSSg5UZl.png)
+**$\rightarrow$ Đáp án: `http://87.96.21.84/del.ps1`**
+
+**10. Identifying malicious tasks and understanding how they were used for persistence helps in fortifying defenses against future attacks. What's the full name of the task created by the attacker to maintain persistence?**
+- Nếu attacker tạo task thông qua một kết nối từ xa như `xp_cmdshell`, lệnh này sẽ nằm trong gói tin dữ liệu. Thử lọc `tcp contains "schtasks" || tcp contains "Register-ScheduledTask"`:
+![image](https://hackmd.io/_uploads/rkAJ_e98bx.png)
+- Kiểm tra TCP Stream:
+![image](https://hackmd.io/_uploads/HyN-Oe5L-l.png)
+Chú ý phần `/tn` nghĩa là Task Name.
+
+**$\rightarrow$ Đáp án: `\Microsoft\Windows\MUI\LPupdate`**
+
+**11. Based on your analysis of the second malicious file, What is the MITRE ID of the main *tactic* the second file tries to accomplish?**
+- Vì attacker tắt Windows Defender nên tra MITRE thì:
+
+![image](https://hackmd.io/_uploads/ryXnql9Ubx.png)
+
+**$\rightarrow$ Đáp án: `TA0005`**
+
+**12. What's the invoked PowerShell script used by the attacker for dumping credentials?**
+- Kiểm tra HTTP Stream của gói tin thứ hai sau khi lọc `http.request.method == "GET"`:
+![image](https://hackmd.io/_uploads/By563xq8be.png)
+**$\rightarrow$ Đáp án: `Invoke-PowerDump.ps1`**
+
+**13. Understanding which credentials have been compromised is essential for assessing the extent of the data breach. What's the name of the saved text file containing the dumped credentials?**
+- Kiểm tra từng HTTP Stream và TCP Stream của gói tin trong filter đang lọc. Ở HTTP Stream của gói thứ năm:
+![image](https://hackmd.io/_uploads/SyfU1WqUZl.png)
+**$\rightarrow$ Đáp án: `hashes.txt`**
+
+**14. Knowing the hosts targeted during the attacker's reconnaissance phase, the security team can prioritize their remediation efforts on these specific hosts. What's the name of the text file containing the discovered hosts?**
+- Trong HTTP Stream của gói tin thứ hai:
+![image](https://hackmd.io/_uploads/BJT8Tec8Ze.png)
+**$\rightarrow$ Đáp án: `extracted_hosts.txt`**
+
+**15. After hash dumping, the attacker attempted to deploy ransomware on the compromised host, spreading it to the rest of the network through previous lateral movement activities using SMB. You’re provided with the ransomware sample for further analysis. By performing behavioral analysis, what’s the name of the ransom note file?**
+- Trích xuất file `javaw.exe` ra rồi phân tích nó:
+![image](https://hackmd.io/_uploads/Bk4U7-cLZe.png)
+- Vì file này là ransomware nên bị Windows Defender chặn, tham khảo write up mạng thì ta có:
+![image](https://hackmd.io/_uploads/Hydu_-qIbe.png)
+![image](https://hackmd.io/_uploads/BklKdbcU-l.png)
+**$\rightarrow$ Đáp án: `# DECRYPT FILES BLUESKY #`**
+
+**16. In some cases, decryption tools are available for specific ransomware families. Identifying the family name can lead to a potential decryption solution. What's the name of this ransomware family?**
+- Đưa mã băm lên [VirusTotal](https://www.virustotal.com/gui/home/upload):
+![image](https://hackmd.io/_uploads/H1ftYW9Lbx.png)
+![image](https://hackmd.io/_uploads/BkeiYb58Zg.png)
+
+**$\rightarrow$ Đáp án: `bluesky`**
+
 ## E. Hack The Box:
 ### Packet Puzzle:
 - [Link bài lab](https://app.hackthebox.com/sherlocks/Packet%2520Puzzle?tab=play_sherlock)
