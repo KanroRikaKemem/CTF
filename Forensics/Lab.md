@@ -851,7 +851,76 @@ username: myuser
 password: P@ssw0rd123456!
 ```
 - Flag: `flag{1_4m_gr00000t!}`
-- Thông tin hệ thống
+
+### 6. Lab 06:
+> [Link](https://github.com/vonderchild/digital-forensics-lab/tree/main/Lab%2006#analyzing-a-disk-image) lab
+
+**1. What are the MD5 and SHA1 hashes of the `note.txt` file?**
+- Ta tìm thấy `note.txt` ở `[root][AD1]`:
+![image](https://hackmd.io/_uploads/HJDjaRhLZe.png)
+- Chuột phải vào file chọn `Export File Hash List` và lưu file `.csv`:
+
+![image](https://hackmd.io/_uploads/SJ1QRAh8Wl.png)
+![image](https://hackmd.io/_uploads/ry-t0A2UWe.png)
+
+**$\rightarrow$ Đáp án:** 
+- MD5: `c91e969e9184267c35ddc3ff45f795d3`
+- SHA1: `c61dce75ba83f186471297e2e0568ddd0cefe022`
+
+**2. What's the MFT record number of the `note.txt` file? The answer may vary depending on the method used.**
+- MFT Record Number là vị trí của metadata của `note.txt` trong Master File Table. Chuột phải rồi `Export Files...`:
+
+![image](https://hackmd.io/_uploads/B1g311a8We.png)
+- Chạy lệnh `fsutil file queryfileid <đường_dẫn_file>` trên Command Prompt với quyền admin:
+
+![image](https://hackmd.io/_uploads/Hkchgy68Wx.png)
+- Chuyển từ hex về thập phân:
+
+![image](https://hackmd.io/_uploads/Sy5gbkTLZg.png)
+
+**$\rightarrow$ Đáp án: `80220368362590102`**
+
+**3. Can you determine the parent directory of the file named `$Txf`? You can use either `analyzeMFT` or `MFTECmd` to inspect the contents of the `$MFT` file to answer this question.**
+- Export `$Txf`:
+
+![image](https://hackmd.io/_uploads/HkwFX1aI-g.png)
+- Dùng Commant Prompt admin, `cd` đến thư mục chứa `MFTECmd.exe` rồi chạy lệnh `MFTECmd.exe -f <đường_dẫn_đến_$MFT> --csv <thư_mục_lưu_kết_quả>`:
+
+![image](https://hackmd.io/_uploads/Sk_s8y6I-e.png)
+- Mở file `.csv` vừa lưu:
+
+![image](https://hackmd.io/_uploads/SkBCUJpUWl.png)
+**$\rightarrow$ Đáp án: `.\$Extend\$RmMetadata`**
+
+**4. The `meme.jpeg` image was originally downloaded from a twitter URL. Can you use MFTECmd to determine the original URL?**
+- Cơ chế hoạt động của Alternate Data Streams (ADS): Khi tải file từ trình duyệt trên hệ thống `NTFS`, Windows đính kèm một luồng dữ liệu phụ `:Zone.Identifier` vào file đó. Luồng này chứa thông tin "Mark of the Web" (MoTW) gồm:
+    - `ZoneId` (Thường là ba cho Internet).
+    - `HostUrl`: Link download.
+    - `ReferrerUrl`: Trang web download.
+- **Cách 1:** Ở file output `.csv` trên, cột `ZoneIdContents` và dòng chứa `meme.jpeg:Zone.Identifier`:
+
+![image](https://hackmd.io/_uploads/H1D39y68bx.png)
+- **Cách 2:** Trong FTK Imager đi đến `[root][AD1]` $\rightarrow$ `meme.jpeg`:
+
+![image](https://hackmd.io/_uploads/ByIHFy6LWx.png)
+
+**$\rightarrow$ Đáp án: `https://pbs.twimg.com/media/FadAHVAUUAAVp2Q?format=jpg&name=small`**
+
+**5. Can you analyze the `$Boot` file and determine the volume serial number in raw hexadecimal format?**
+- Volume Serial Number:
+    - Xác định chính xác ổ đĩa cụ thể ngay cả khi tên ổ đĩa (Volume Label) bị thay đổi.
+    - Liên kết các file shortcut (`.lnk`) hoặc Registry keys với ổ đĩa gốc chúng trỏ tới.
+    - Kiểm tra tính nhất quán giữa bản ảnh đĩa (Image) và thiết bị vật lý gốc.
+    - **Với NTFS**: Volume Serial Number nằm ở offset 0x48 đến 0x4F (dài 8 bytes).
+    - **Với FAT32**: Volume Serial Number nằm ở offset 0x43 đến 0x46 (dài 4 bytes)
+- Chuột trái vào `$Boot` rồi quan sát phần Hex, ở hàng `00000040`, offset `0x48` (Cột tám):
+
+![image](https://hackmd.io/_uploads/HkBip1aIWx.png)
+    - Raw hex: `7F 7A 42 44 B7 42 44 F6`
+    - Cách hiển thị thông thường: `7F7A-4244`
+> Dữ liệu trong `$Boot` được lưu theo dạng byte thấp đứng trước (Little Endian).
+
+**$\rightarrow$ Đáp án: `7F 7A 42 44 B7 42 44 F6`**
 
 ## B. TryHackMe:
 ### I. Task 10 - Windows Forensics 1:
