@@ -1728,7 +1728,7 @@ Chú ý phần `/tn` nghĩa là Task Name.
 **$\rightarrow$ Đáp án: `bluesky`**
 
 ## E. Hack The Box:
-### Packet Puzzle:
+### 1. Packet Puzzle:
 - [Link bài lab](https://app.hackthebox.com/sherlocks/Packet%2520Puzzle?tab=play_sherlock)
 - Đề bài: *"You are a junior security analyst at a small Japanese cryptocurrency trading company. After detecting suspicious activity on the internal network, you exported a PCAP for further investigation. Analyze this capture to determine whether the environment was compromised and reconstruct the attacker’s actions."*
 - File được cho: `PacketPuzzle.zip`, giải nén ra ta được `NetworkTraffic.pcap`
@@ -1860,3 +1860,138 @@ Trong TCP Stream vừa rồi, ngay sau đó có command:
 ![image](https://hackmd.io/_uploads/rkXx_mJUWl.png)
 
 **$\rightarrow$ Đáp án cần điền là `Cannot create process Win32Error:2`**
+
+### 2. Unsupervised:
+> - [Link bài lab](https://app.hackthebox.com/sherlocks/Unsupervised?tab=play_sherlock)
+> - Đề cho `Image.ad1` và `Important Files and Folders.txt`. Nội dung `Important Files and Folders.txt`:
+> 
+> ![image](https://hackmd.io/_uploads/Sk-BAAp8-l.png)
+
+#### 1. Find out the time zone of victim PC. (UTC+xx:xx)
+- Mở FTK Imager và export hive `SYSTEM` rồi dùng Registry Explorer để phân tích hive này:
+
+![image](https://hackmd.io/_uploads/r1aWbyRU-e.png)
+![image](https://hackmd.io/_uploads/HyoE-kRIZg.png)
+- Vào `ControlSet001\Control\TimeZoneInformation`:
+
+![image](https://hackmd.io/_uploads/rJALf1CI-e.png)
+- Trong Registry của Windows, giá trị `Bias` được tính bằng phút và theo công thức: $$UTC = LocalTime + Bias$$ Nghĩa là: $$LocalTime = UTC - Bias = UTC - (-300') = UTC + 300'$$ Đổi từ phút sang giờ: $$300' = 5h$$
+
+**$\rightarrow$ Đáp án: `UTC+05:00`**
+
+#### 2. Employees should be trained not to leave their accounts unlocked. What is the username of the logged in user?
+Trong FTK Imager, ở folder `Users`:
+
+![image](https://hackmd.io/_uploads/HJZ8NJ0Ibg.png)
+
+**$\rightarrow$ Đáp án: `MrManj`**
+
+#### 3. How many USB storage devices were attached to this host in total?
+Trong Registry Explorer, để kiểm tra dấu vết kết nối USB ta vào `SYSTEM\ControlSet001\Enum\USBTOR`:
+
+![image](https://hackmd.io/_uploads/r1UfuyRUZl.png)
+Có 7 giá trị nhưng 3 giá trị cuối có cảm giác đáng nghi hơn, nhập thử thì `3` là đáp án đúng.
+
+**$\rightarrow$ Đáp án: `3`**
+
+#### 4. What is the attach timestamp for the USB in UTC?
+Từ output trên, chú ý rằng `Ven_TOSHIBA` có thời gian lần đầu kết nối và lần cuối kết nối đều giống nhau, nghĩa là USB này chỉ cắm vào máy một lần duy nhất:
+
+![image](https://hackmd.io/_uploads/S1-tqJCL-x.png)
+
+**$\rightarrow$ Đáp án: `2024-02-23 11:37:50`**
+
+#### 5. What is the detach timestamp for the USB in UTC?
+Từ câu trên.
+**$\rightarrow$ Đáp án: `2024-02-23 11:39:12`**
+
+#### 6. Which folder did he copy to the USB?
+- Kiểm tra ShellBags (nằm ở `USRCLASS.DAT`).
+> Nó lưu tên folder, thời gian truy cập. Nếu ta thấy tên một folder nhạy cảm xuất hiện trong ShellBags gắn liền với một Device GUID của USB, có thể khẳng định user đã duyệt qua thư mục đó trên USB.
+- Trong FTK Imager, export `UsrClass.dat` ở `\Users\MrManj\AppData\Local\Microsoft\Windows\` rồi phân tích bằng tool [ShellBags Explorer](https://download.ericzimmermanstools.com/net9/ShellBagsExplorer.zip):
+
+![image](https://hackmd.io/_uploads/rkHfreR8be.png)
+![image](https://hackmd.io/_uploads/SJO2HeRU-g.png)
+Ta thấy có thêm hai ổ đĩa mới là `E:\` và `F:\`.
+- Kiểm tra cả hai ổ đĩa thì khả năng cao thư mục bị copy là `Documents`:
+
+![image](https://hackmd.io/_uploads/ByTGDlCLWl.png)
+
+**$\rightarrow$ Đáp án: `Documents`**
+
+#### 7. There were subfolders in the folder that was copied. What is the name of the first subfolder? (Alphabetically)
+Từ output trên.
+
+**$\rightarrow$ Đáp án: `Business Proposals`**
+
+#### 8. Eddie opens some files after copying them to the USB. What is the name of the file with the `.xlsx` extension Eddie opens?
+- Ta kiểm tra `.lnk` file vì khi user mở file (từ Desktop, Downloads hay USB), Windows tự động tạo một file `.lnk` tương ứng. Trong FTK Imager vào `C:\Users\MrManj\AppData\Roaming\Microsoft\Windows\Recent\` rồi export toàn bộ thư mục:
+
+![image](https://hackmd.io/_uploads/HJvUtxRLbl.png)
+![image](https://hackmd.io/_uploads/ByCWseCUZe.png)
+- Để phân tích `.lnk` ta dùng [LECmd](https://download.ericzimmermanstools.com/net9/LECmd.zip) bằng cách mở Command Prompt với quyền admin:
+    - Đi tới folder chứa `LECmd.exe` rồi chạy command `.\LECmd.exe -d "<đường_dẫn_thư_mục_recent>" --csv "<đường_dẫn_thư_mục_kết_quả>`:
+
+    ![image](https://hackmd.io/_uploads/H1n0ilCLWg.png)
+    - Ở phần output có file `Business Leads.xlsx`:
+
+    ![image](https://hackmd.io/_uploads/HJpvTxR8Wg.png)
+    ![image](https://hackmd.io/_uploads/HykSTlAIZe.png)
+  
+    Check thời gian, ổ đĩa, ngày tháng, GUID thì đều trùng khớp với USB.
+
+**$\rightarrow$ Đáp án: `Business Leads.xlsx`**
+
+#### 9. Eddie opens some files after copying them to the USB. What is the name of the file with the .docx extension Eddie opens?
+Tương tự, ta có `Proposal Brnrdr ltd.docx`:
+
+![image](https://hackmd.io/_uploads/SkIsAlAIZl.png)
+![image](https://hackmd.io/_uploads/r1620eC8Zl.png)
+Check thời gian, ổ đĩa, ngày tháng, GUID thì đều trùng khớp với USB.
+
+**$\rightarrow$ Đáp án: `Proposal Brnrdr ltd.docx`**
+
+#### 10. What was the volume name of the USB?
+Từ output câu 8 và 9:
+
+![image](https://hackmd.io/_uploads/Hy4hkbRUbx.png)
+
+**$\rightarrow$ Đáp án: `RVT-9J`**
+
+#### 11. What was the drive letter of the USB?
+Từ output câu 6 và 7.
+
+**$\rightarrow$ Đáp án: `E`**
+
+#### 12. I hope we can find some more evidence to tie this all together. What is Eddie's last name?
+- Thumbnails là bản xem trước của hình ảnh và được tạo khi user mở folder chứa hình ảnh hoặc tài liệu.
+- `Thumbcache` là database trong hệ điều hành Windows lưu trữ các ảnh thu nhỏ đó để nâng cao trải nghiệm người dùng bằng cách tăng tốc quá trình.
+- Trong `\Users\MrManj\AppData\Local\Microsoft\Windows\Explorer\` có file `.db` là các ảnh thu nhỏ. Ta export folder này:
+
+![image](https://hackmd.io/_uploads/H1im7H08Zg.png)
+![image](https://hackmd.io/_uploads/BJbX4SA8be.png)
+- Đẩy toàn bộ file `.db` lên [Thumbcache Viewer](https://thumbcacheviewer.github.io/) và phân tích. Lướt xuống gần cuối thì có các file `.png` và `.jpg`, xem các ảnh đó thì:
+
+![image](https://hackmd.io/_uploads/SJP0LHRUbg.png)
+
+**$\rightarrow$ Đáp án: `Homer`**
+
+#### 13. There was an unbranded USB in the USB list, can you identify it's manufacturer’s name?
+- Ở output câu 3, trong ba USB thì chỉ có cái cuối là không có nhãn hiệu:
+
+![image](https://hackmd.io/_uploads/BJxtWZCLZl.png)
+- Nhưng ta có Serial Number:
+
+![image](https://hackmd.io/_uploads/HyiGMWRLbx.png)
+- Check trong `SYSTEM\ControlSet001\Enum\USB` tìm USB có số Serial tương ứng:
+
+![image](https://hackmd.io/_uploads/rJjx7bRIWg.png)
+- Trong Registry, USB được định danh bằng chuỗi Key Name có định dạng `VID_XXXX&PID_YYYY`:
+    - **VID (Vendor ID):** Mã định danh nhà sản xuất.
+    - **PID (Product ID):** Mã định danh dòng sản phẩm.
+- Thử tra Google thì có trang https://the-sz.com/products/usbid/ để xác định nguồn gốc USB:
+
+![image](https://hackmd.io/_uploads/BJcKIZ08bg.png)
+![image](https://hackmd.io/_uploads/rJn7L-A8Zg.png)
+
+**$\rightarrow$ Đáp án: `Shenzhen SanDiYiXin Electronic Co.,LTD`**
