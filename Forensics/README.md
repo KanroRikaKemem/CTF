@@ -1,6 +1,9 @@
-## A. Tổng quan Forensics:
-> *Link tham khảo: [GitHub](https://github.com/vonderchild/digital-forensics-lab)*
+> Link tham khảo: [GitHub](https://github.com/vonderchild/digital-forensics-lab)
+> Link Lab:
+> - [GitHub](https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/BJrYw0pIZl)
+> - [Khác](https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/H1k5dNYpge)
 
+## A. Tổng quan Forensics:
 - Computer Forensics (hay còn gọi là điều tra số) là công việc phát hiện, bảo vệ và phân tích thông tin được lưu trữ, truyền tải hoặc được tạo ra bởi một máy tính hoặc mạng máy tính, nhằm đưa ra các suy luận hợp lý để tìm nguyên nhân và giải thích các hiện tượng trong quá trình điều tra.
 - Mục tiêu: Phát hiện, bảo quản, khai thác, tài liệu hoá và đưa ra kết luận về dữ liệu thu thập được.
 > Nếu một website nào đó bị tấn công và có những hậu quả không mong muốn, chủ nhân trang web sẽ cần tới Forensics để xác định nguyên nhân tấn công và tìm cách khắc phục, hay xa hơn là tìm thủ phạm.
@@ -30,7 +33,9 @@
 ### III. Network Traffic & Web Attack Forensics:
 [Link Write - up](https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/rktTQB5Vbe)
 
-### IV. Memory Forensics:
+### IV. Disk Image Forensics:
+[Link Write - up](https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/HyahddoU-l)
+
 ### V. Disk Forensics:
 ### VI. Mail Forensics:
 ### VII. Malware Analyst:
