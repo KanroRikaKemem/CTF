@@ -1999,6 +1999,9 @@ Từ output câu 6 và 7.
 ### 3. Nuts:
 > - [Link bài lab](https://app.hackthebox.com/sherlocks/Nuts)
 > - Đề cho một folder chứa ổ `C:/`.
+> - Đề bài:
+> 
+> ![image](https://hackmd.io/_uploads/ByE5nogDZg.png)
 
 #### 1. What action did Alex take to integrate the purported time-saving package into the deployment process? (provide the full command)
 - Windows PowerShell 5.1 và PowerShell Core lưu 4096 commands cuối cùng trong một plaintext file của mỗi user's profile ở `%userprofile%\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt`. Trong quá trình đi tới địa chỉ này, ở folder `Roaming/` thì xuất hiện folder `NuGet/`:
