@@ -1995,3 +1995,207 @@ Từ output câu 6 và 7.
 ![image](https://hackmd.io/_uploads/rJn7L-A8Zg.png)
 
 **$\rightarrow$ Đáp án: `Shenzhen SanDiYiXin Electronic Co.,LTD`**
+
+### 3. Nuts:
+> - [Link bài lab](https://app.hackthebox.com/sherlocks/Nuts)
+> - Đề cho một folder chứa ổ `C:/`.
+
+#### 1. What action did Alex take to integrate the purported time-saving package into the deployment process? (provide the full command)
+- Windows PowerShell 5.1 và PowerShell Core lưu 4096 commands cuối cùng trong một plaintext file của mỗi user's profile ở `%userprofile%\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt`. Trong quá trình đi tới địa chỉ này, ở folder `Roaming/` thì xuất hiện folder `NuGet/`:
+
+![image](https://hackmd.io/_uploads/HJQb6BxDZg.png)
+![image](https://hackmd.io/_uploads/rkrEargvbg.png)
+- Trong `ConsoleHost_history.txt`:
+
+![image](https://hackmd.io/_uploads/H1xKprgvWx.png)
+**$\rightarrow$ Đáp án: `nuget install PublishIgnor -Version 1.0.11-beta`**
+
+#### 2. Identify the URL from which the package was downloaded.
+- Quay lại và đi vào folder `NuGet/` thì có file `NuGet.config`. `.config` là file lưu trữ danh sách nguồn. Mở nó bằng Notepad:
+
+![image](https://hackmd.io/_uploads/SywhCSevZx.png)
+Nhưng đáp án sai .-.
+- Chrome lưu trữ dữ liệu (mật khẩu đã lưu, cookies và nhiều thông tin hữu ích khác) ở `C:\Users\%USERNAME%\AppData\Local\Google\Chrome\User Data\Default`. Đi vào thì có file `History`, kiểm tra nó bằng Notepad thì có đoạn:
+
+![image](https://hackmd.io/_uploads/ryjLxLgP-e.png)
+- Thử với đáp án `http://nuget.org/packages/PublishIgnor/` thì không đúng, ta thêm `s` vào giao thức `http` cũng sai:
+
+![image](https://hackmd.io/_uploads/rk8sxUgvWg.png)
+- Thử search URL đó trên thanh tìm kiếm thì dẫn tới trang web và ta có được URL đầy đủ, đó cũng là đáp án đúng:
+
+![image](https://hackmd.io/_uploads/B19gWUxPZg.png)
+
+**$\rightarrow$ Đáp án: `https://www.nuget.org/packages/PublishIgnor/`**
+
+#### 3. Who is the threat actor responsible for publishing the malicious package? (the name of the package publisher)
+Trang web của NuGet có tên Owner:
+
+![image](https://hackmd.io/_uploads/BJupZIlwbl.png)
+**$\rightarrow$ Đáp án: `a1l4m`**
+
+#### 4. When did the attacker initiate the download of the package? Provide the timestamp in UTC format (YYYY-MM-DD HH:MM).
+- Phân tích Master File Table (MFT) có thể tìm ra thông tin về cách tạo file, sự điều chỉnh và thời gian xoá, giúp thành lập timeline và phục hồi các file đã xoá.
+- Ta dùng tool [MFTECmd.exe](https://download.ericzimmermanstools.com/net9/MFTECmd.zip) để phân tích file này:
+    - Chạy Command Prompt với quyền admin rồi đưa file sang dạng `.csv` để phân tích:
+
+    ![image](https://hackmd.io/_uploads/SJkF48xvbe.png)
+    - `Ctrl` + `F` để tìm keyword `nuget` thì nó ra `nuget.exe`, tuy nhiên đây là file thực thi mà ta cần tìm thời gian tải. Tiếp tục với từ khoá `PublishIgnor`:
+
+    ![image](https://hackmd.io/_uploads/rymxvUlwWl.png)
+    > Cột T là `Created0x10`
+
+**$\rightarrow$ Đáp án: `2024-03-19 18:41`**
+
+#### 5. Despite restrictions, the attacker successfully uploaded the malicious file to the official site by altering one key detail. What is the modified package ID of the malicious package?
+Package ID là tên định danh duy nhất của gói, ở output câu 1, lệnh `install` sẽ có dạng `nuget install <Package_ID>`:
+
+![image](https://hackmd.io/_uploads/rJqxuUlDbl.png)
+**$\rightarrow$ Đáp án: `PublishIgnor`**
+
+#### 6. Which deceptive technique did the attacker employ during the initial access phase to manipulate user perception? (technique name)
+- Ở trang web chính thức của NuGet, packpage ID là `PublishIgnore`:
+
+![image](https://hackmd.io/_uploads/B18VtLevbl.png)
+Tuy nhiên tên giả mạo là `PublishIgnor`.
+- Ngoài ra, ở output câu 2, có một đoạn "quảng cáo" nhưng gặp lỗi chính tả khá nhiều và trông có vẻ scam:
+
+![image](https://hackmd.io/_uploads/ryjLxLgP-e.png)
+- Search thì đây là kiểu tấn công chiếm quyền URL:
+
+![image](https://hackmd.io/_uploads/rkRbo8lPWx.png)
+**$\rightarrow$ Đáp án: `typosquatting`**
+
+#### 7. Determine the full path of the file within the package containing the malicious code.
+- Trong folder `Administrators/` có `.nuget`. Thử đi vào dần dần `\C\Users\Administrator\.nuget\packages\publishignor\1.0.11-beta`:
+
+![image](https://hackmd.io/_uploads/BJEPhUgwbx.png)
+Trong `tools`:
+
+![image](https://hackmd.io/_uploads/rymjhUxvZl.png)
+- Mở `init.ps1` bằng Notepad:
+
+![image](https://hackmd.io/_uploads/HkZzRUePWe.png)
+Đây là tập lệnh độc hại nhằm vô hiệu hóa bảo mật và tải về phần mềm thực thi từ server của attacker (Cre: Gemini).
+
+![image](https://hackmd.io/_uploads/BJah1PlwZg.png)
+![image](https://hackmd.io/_uploads/Hk10kPxvWe.png)
+![image](https://hackmd.io/_uploads/B1-VlPxDZx.png)
+![image](https://hackmd.io/_uploads/HyWalvlv-l.png)
+
+**$\rightarrow$ Đáp án: `C:\Users\Administrator\.nuget\packages\publishignor\1.0.11-beta\tools\init.ps1`**
+
+#### 8. When tampering with the system's security settings, what command did the attacker employ?
+Từ ouput câu trên, theo giải thích của Gemini:
+
+![image](https://hackmd.io/_uploads/SymVkDlP-l.png)
+**$\rightarrow$ Đáp án: `Set-MpPreference -DisableRealtimeMonitoring $true`**
+
+#### 9. Following the security settings alteration, the attacker downloaded a malicious file to ensure continued access to the system. Provide the SHA1 hash of this file.
+Từ output câu 7, ta đã có được path của file thực thi độc hại của attacker, vào Command Prompt để lấy SHA1 của file này.
+
+**$\rightarrow$ Đáp án: `57b7acf278968eaa53920603c62afd8b305f98bb`**
+
+#### 10. Dentify the framework utilised by the malicious file for command and control communication.
+- Command and Control (C2) Framework là bộ công cụ mà attacker dùng để quản lý các máy tính đã bị chiếm quyền điều khiển, gồm hai phần:
+    - Server: Của attacker dùng để ra lệnh.
+    - Agent (Beacon): Mã độc cài trên máy nạn nhân để nhận lệnh và gửi dữ liệu về.
+- Kiểm tra mã hash trên VirusTotal thì:
+
+![image](https://hackmd.io/_uploads/ryfpmFgwWl.png)
+Có thể là malware chết rồi, tham khảo khắp nơi thì đáp án của câu này là `silver`.
+
+**$\rightarrow$ Đáp án: `silver`**
+
+#### 11. At what precise moment was the malicious file executed?
+- Để tìm thời điểm file thực thi, ta phân tích prefetch file vì nó được tạo khi một app khởi chạy lần đầu. Vị trí: `C:\Windows\Prefetch\`:
+
+![image](https://hackmd.io/_uploads/ByWbpFevbg.png)
+- Dùng tool [PECmd](https://download.ericzimmermanstools.com/net9/PECmd.zip) để phân tích:
+
+![image](https://hackmd.io/_uploads/r1FpTKgDZe.png)
+![image](https://hackmd.io/_uploads/Hy8UCtgwbl.png)
+Dựa vào hai output trên thì có thể thấy rằng thời gian thực thi của file này là `2024-03-19 19:23:36`.
+
+**$\rightarrow$ Đáp án: `2024-03-19 19:23:36`**
+
+#### 12. The attacker made a mistake and didn’t stop all the features of the security measures on the machine. When was the malicious file detected? Provide the timestamp in UTC.
+- Vì không tắt features bảo mật nên file đã bị Windows Defender phát hiện, ta kiểm tra log của nó ở `"C:\Windows\System32\winevt\logs\Microsoft-Windows-Windows Defender%4Operational.evtx"` bằng tool [EvtxECmd](https://download.ericzimmermanstools.com/net9/EvtxECmd.zip):
+
+![image](https://hackmd.io/_uploads/Hy1Qxclw-e.png)
+![image](https://hackmd.io/_uploads/HyJVe9lDZl.png)
+- Mở file `.csv` và lọc Event ID `1116` - Phát hiện mã độc hoặc `1117` - Thực hiện ngăn chặn:
+
+![image](https://hackmd.io/_uploads/SJ40lcev-g.png)
+- File bị phát hiện lúc `3/19/2024 7:33:32 PM`:
+
+![image](https://hackmd.io/_uploads/BJLs-5lDbx.png)
+
+**$\rightarrow$ Đáp án: `2024-03-19 19:33:32`**
+
+#### 13. After establishing a connection with the C2 server, what was the first action taken by the attacker to enumerate the environment? Provide the name of the process.
+- Trong `C:\Windows\Prefetch\` ta tìm thấy ![image](https://hackmd.io/_uploads/rkYFEclDZg). Thử nhập đáp án thì đây là đáp án đúng.
+> `whoami` để kiểm tra quyền hạn hiện tại.
+- Để chắc chắn hơn, kiểm tra theo thời gian tạo bằng tool [Timeline Explorer](https://download.ericzimmermanstools.com/net9/TimelineExplorer.zip):
+
+![image](https://hackmd.io/_uploads/ryXZeilw-l.png)
+
+**$\rightarrow$ Đáp án: `whoami.exe`**
+
+#### 14. To ensure continued access to the compromised machine, the attacker created a scheduled task. What is the name of the created task?
+- Thử kiểm tra log của `"C:\Windows\System32\winevt\logs\Microsoft-Windows-TaskScheduler%4Maintenance.evtx"` trực tiếp bằng Event Viewer thì không có gì đặc biệt
+- Vào `C:\Users\Ha Nguyen\Desktop\Nuts\C\Windows\System32\Tasks`:
+
+![image](https://hackmd.io/_uploads/HkxkYqxP-x.png)
+Trông `MicrosoftSystemDailyUpdates` rất khả nghi, check thử thì đây là đáp án đúng.
+
+**$\rightarrow$ Đáp án: `MicrosoftSystemDailyUpdates`**
+
+#### 15. When was the scheduled task created? Provide the timestamp in UTC.
+Mở thử file trên bằng Notepad:
+
+![image](https://hackmd.io/_uploads/HJwRY5eDbe.png)
+
+**$\rightarrow$ Đáp án: `2024-03-19 19:24:05`**
+
+#### 16. Upon concluding the intrusion, the attacker left behind a specific file on the compromised host. What is the name of this file?
+- Ta lọc file `.csv` của MFT ban đầu theo mốc thời gian tạo bằng tool Timeline Explorer. Lọc những file `.exe` được tạo sau `2024-03-19 19:24:05`:
+
+![image](https://hackmd.io/_uploads/rkxLDeixDbl.png)
+![image](https://hackmd.io/_uploads/r1ajlilD-x.png)
+![image](https://hackmd.io/_uploads/rybAlogwbl.png)
+![image](https://hackmd.io/_uploads/BktkbslvWg.png)
+![image](https://hackmd.io/_uploads/BkEMZslP-g.png)
+![image](https://hackmd.io/_uploads/BkgE-sgD-e.png)
+![image](https://hackmd.io/_uploads/ByFPWolvbg.png)
+Chắc đám này không phải đâu :DD
+- Lọc tiếp thì tìm thấy:
+
+![image](https://hackmd.io/_uploads/ryWmzilv-x.png)
+> Nhưng có một sự ảo ma là đây lại là đáp án của câu 17 (mình gõ nhầm ô đáp án thì nó bảo đúng, nhìn kĩ lại thì không phải câu 16).
+- Tìm lòi con mắt không ra nên tham khảo write up mạng:
+
+![image](https://hackmd.io/_uploads/rkXszoxPWg.png)
+> Mình đã thử check lại theo mốc thời gian của đáp án trên trong bài mình như nó không ra:
+> 
+> ![image](https://hackmd.io/_uploads/HJezXoePbl.png)
+
+**$\rightarrow$ Đáp án: `file.exe`**
+
+#### 17. As an anti-forensics measure. The threat actor changed the file name after executing it. What is the new file name?
+**$\rightarrow$ Đáp án: `Updater.exe`**
+
+#### 18. Identify the malware family associated with the file mentioned in the previous question (17).
+- Ta cũng đã có địa chỉ của `Updater.exe`:
+
+![image](https://hackmd.io/_uploads/ByWmNogPWg.png)
+- Trích mã hash và search trên Virus Total:
+
+![image](https://hackmd.io/_uploads/H1oK4sgvZg.png)
+**$\rightarrow$ Đáp án: `Impala`**
+
+#### 19. When was the file dropped onto the system? Provide the timestamp in UTC.
+Từ output câu 17:
+
+![image](https://hackmd.io/_uploads/ryeWPjxPWx.png)
+
+**$\rightarrow$ Đáp án: `2024-03-19 19:30:04`**
