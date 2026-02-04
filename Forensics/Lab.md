@@ -2104,6 +2104,10 @@ Từ output câu 7, ta đã có được path của file thực thi độc hại
 ![image](https://hackmd.io/_uploads/ryfpmFgwWl.png)
 Có thể là malware chết rồi, tham khảo khắp nơi thì đáp án của câu này là `silver`.
 
+> Check log của Windows Defender (chi tiết cách check ở câu 12), tìm keyword `uninstall.exe` thì được:
+> 
+> ![image](https://hackmd.io/_uploads/rJPOoogD-x.png)
+
 **$\rightarrow$ Đáp án: `silver`**
 
 #### 11. At what precise moment was the malicious file executed?
