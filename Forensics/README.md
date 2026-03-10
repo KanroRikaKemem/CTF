@@ -37,7 +37,8 @@
 ### IV. Disk Image Forensics:
 [Link Write - up](https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/HyahddoU-l)
 
-### V. Disk Forensics:
+### V. Linux Forensics:
+[Link Write - up](https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/H1Itm0-PZx)
 ### VI. Mail Forensics:
 ### VII. Malware Analyst:
 ## B. Một số Linux commands:
