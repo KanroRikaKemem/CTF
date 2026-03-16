@@ -1798,6 +1798,154 @@ Quay lại với `.bash_history`:
 ![image](https://hackmd.io/_uploads/rJVm8l7cZl.png)
 **$\rightarrow$ Đáp án: `/root/Documents/myfirsthack/`**
 
+### V. Hacked Lab:
+> Reconstruct initial access, system modifications, and persistence on a compromised Linux server by analyzing disk images and cracking passwords.
+> Uncompress the lab (Pass: `cyberdefenders.org`).
+- [Link bài lab](https://cyberdefenders.org/blueteam-ctf-challenges/hacked/)
+- Kịch bản: *"A soc analyst has been called to analyze a compromised Linux web server. Figure out how the threat actor gained access, what modifications were applied to the system, and what persistent techniques were utilized. (e.g. backdoors, users, sessions, etc)."*
+- Đề cho file `71-Hacked.zip` chứa `Webserver.E01`.
+
+#### 1. What is the system timezone
+Kiểm tra `/etc/timezone`:
+![image](https://hackmd.io/_uploads/H19S6qm5We.png)
+**$\rightarrow$ Đáp án: `Europe/Brussels`**
+
+#### 2. Who was the last user to log in to the system?
+- Thử kiểm tra `/var/log/lastlog` (Hiển thị thông tin đăng nhập gần đây cho tất cả user):
+![image](https://hackmd.io/_uploads/H1D6ko75-e.png)
+Có vẻ không dùng được.
+- Check tiếp `/var/log/auth.log` (Chứa thông tin xác thực trên hệ thống trong máy chủ Debian và Ubuntu được ghi lại), lướt xuống đến cuối:
+![image](https://hackmd.io/_uploads/H1JGzoQcbe.png)
+Lúc đầu thấy `user mail` nhưng bỏ qua vì nghĩ rằng `mail` là `thư`. Lướt lên trên thì:
+![image](https://hackmd.io/_uploads/S1VjWo7cWl.png)
+
+**$\rightarrow$ Đáp án: `mail`**
+
+#### 3. What was the source port the user 'mail' connected from?
+Từ output câu trên:
+![image](https://hackmd.io/_uploads/SJAgMomqZe.png)
+**$\rightarrow$ Đáp án: `57708`**
+
+#### 4. How long was the last session for user 'mail'? (Minutes only)
+Từ output câu trên:
+![image](https://hackmd.io/_uploads/ryqOfim9-l.png)
+**$\rightarrow$ Đáp án: `1`**
+
+#### 5. Which server service did the last user use to log in to the system?
+Từ output câu trên:
+![image](https://hackmd.io/_uploads/Hkay7sXcZg.png)
+**$\rightarrow$ Đáp án: `sshd`**
+
+#### 6. What type of authentication attack was performed against the target machine?
+Từ output câu trên, có thể thấy attacker thử rất nhiều lần:
+![image](https://hackmd.io/_uploads/SyIGHsQqWx.png)
+**$\rightarrow$ Đáp án: `brute-force`**
+
+#### 7. How many IP addresses are listed in the `/var/log/lastlog` file?
+Từ output câu 2:
+![image](https://hackmd.io/_uploads/H1D6ko75-e.png)
+**$\rightarrow$ Đáp án: `2`**
+
+#### 8. How many users have a login shell?
+Khi một user đăng nhập thành công shell programme sẽ hiện `/bin/bash`, ngược lại thì `/nologin` hoặc `/bin/false`:
+![image](https://hackmd.io/_uploads/HkvNYs79-l.png)
+**$\rightarrow$ Đáp án: `5`**
+
+#### 9. What is the password of the mail user?
+> - Chi tiết về `/etc/shadow`: [Understanding `/etc/shadow` file format on Linux](https://www.cyberciti.biz/faq/understanding-etcshadow-file/)
+> - Link tải John the Ripper: [John the Ripper password cracker](https://www.openwall.com/john/)
+- Ta có file `/etc/passwd` và `/etc/shadow`. Trong `/shadow` (File hệ thống trong đó mật khẩu user được mã hóa để không sẵn có cho những người cố gắng xâm nhập vào hệ thống):
+![image](https://hackmd.io/_uploads/rJwwjjQqbl.png)
+Có thể thấy:
+    - Username: `mail`
+    - `$6`: Ký hiệu cho thấy password được băm bằng SHA512.
+    - `$zLaoLV8N`: Salt ngẫu nhiên để mã hoá password, để ngăn chặn hai user có cùng mật khẩu tạo ra các mục trùng lặp trong `/etc/shadow`.
+    - Password được băm bằng SHA512:
+    ```
+    $BNxYZUxvXiZwb3UjBhCxnxd9Mb02DDUF.GfMj1kbLB.s/quBVtMM4QjfOvmZvfqeh7BuLXaRvRSfpQgNI5prE.
+    ```
+    Mã băm được mã hoá của user, sau đó chuỗi salt và password chưa mã hóa được kết hợp và mã hóa để tạo ra mã băm được mã hóa của mật khẩu. Copy toàn bộ dòng tìm được ra file `shadow.txt`.
+- Tải `rockyou.txt` ở [link](https://github.com/brannondorsey/naive-hashcat/releases/tag/data) rồi để nó nằm cùng thư mục với `shadow.txt` (ở đây là Desktop).
+- Dùng tool John the Ripper để crack
+![image](https://hackmd.io/_uploads/SJtuK3XqWe.png)
+
+**$\rightarrow$ Đáp án: `forensics`**
+
+#### 10 Which user account was created by the attacker?
+Ở output câu 6:
+![image](https://hackmd.io/_uploads/B1aIH3m9bg.png)
+**$\rightarrow$ Đáp án: `php`**
+
+#### 11. How many user groups exist on the machine?
+Trong `[root]/etc/group` đếm được có 58 groups:
+![image](https://hackmd.io/_uploads/H1cUuNB5bx.png)
+**$\rightarrow$ Đáp án: `58`**
+
+#### 12. How many users have sudo access?
+Cũng trong output ở câu trên:
+![image](https://hackmd.io/_uploads/Sk16dEHcZl.png)
+**$\rightarrow$ Đáp án: `2`**
+
+#### 13. What is the home directory of the `PHP` user?
+- Lần mò thì ta thấy `/usr/php`:
+![image](https://hackmd.io/_uploads/HkU3KVBcbe.png)
+- Ngoài ra, trong `[root]/var/log/auth.log`:
+![image](https://hackmd.io/_uploads/HyKW3NBc-l.png)
+
+**$\rightarrow$ Đáp án: `/usr/php`**
+
+#### 14. What command did the attacker use to gain root privilege?
+> (Answer contains two spaces).
+- Trong `/var/log/auth.log`, ta thấy rằng user `mail` đã vào được quyền root (`sudo`):
+![image](https://hackmd.io/_uploads/rkVReHSqZl.png)
+- Trong `/var/mail/.bash_history`:
+![image](https://hackmd.io/_uploads/H1p-WBSqbl.png)
+
+**$\rightarrow$ Đáp án: `sudo su -`**
+
+#### 15. Which file did the user `root` delete?
+Trong `/[root]/root/.bash_history`, lướt xuống cuối:
+![image](https://hackmd.io/_uploads/Bk_TmrB9Zg.png)
+**$\rightarrow$ Đáp án: `37292.c`**
+
+#### 16. Recover the deleted file, open it and extract the exploit author name.
+- Để khôi phục file đã xoá, mount image:
+![image](https://hackmd.io/_uploads/SkyVIrS5-g.png)
+- Tải [R-Studio](https://www.r-studio.com/Data_Recovery_Download.shtml) và dùng bản demo.
+- Chuột trái vào ổ đĩa vừa mount và chọn `Show Files`:
+![image](https://hackmd.io/_uploads/HyHmTSH9bx.png)
+- Tick vào phần `/tmp`, sau đó chuột phải vào file cần recover và chọn `Recover...`:
+![image](https://hackmd.io/_uploads/Sk-p6BBqWx.png)
+- Sau khi khôi phục, mở file và ta thấy:
+![image](https://hackmd.io/_uploads/HJNSCHB9Ze.png)
+
+**$\rightarrow$ Đáp án: `rebel`**
+
+#### 17. What is the content management system (CMS) installed on the machine?
+- CMS là phần mềm giúp user tạo, quản lý và chỉnh sửa nội dung trên một trang web mà không cần phải giỏi về lập trình. Các CMS phổ biến nhất thường gặp:
+    - WordPress: Phổ biến nhất (chiếm hơn 40% web thế giới).
+    - Joomla, Drupal: Thường dùng cho các hệ thống phức tạp hơn.
+    - Magento: Chuyên về thương mại điện tử.
+- Trong `/[root]/home/vulnosadmin/.bash_history`:
+![image](https://hackmd.io/_uploads/Hy7oWLrqWe.png)
+
+**$\rightarrow$ Đáp án: `Drupal`**
+
+#### 18. What is the version of the CMS installed on the machine?
+Trong `/var/www/html/jabc/includes/bootstrap.inc`:
+![image](https://hackmd.io/_uploads/SJr67IrcZe.png)
+**$\rightarrow$ Đáp án: `7.26`**
+
+#### 19. Which port was listening to receive the attacker's reverse shell?
+- Hệ thống Linux thường ghi lại các nỗ lực kết nối hoặc các tiến trình bất thường. Vào `/var/log/apache2/access.log`, ta tìm được đoạn code base64 rất dài so với các dòng khác:
+![image](https://hackmd.io/_uploads/ryDLKIBcWe.png)
+- Copy toàn bộ và decode:
+![image](https://hackmd.io/_uploads/BkdZcUHc-x.png)
+![image](https://hackmd.io/_uploads/rJU0cUSqWl.png)
+> Đây là một PHP Reverse Shell Payload cực nguy hiểm, thường được tạo ra bởi các framework như Metasploit (Meterpreter). Mục tiêu của nó là kết nối từ máy chủ bị nạn (victim) ngược về máy của kẻ tấn công (attacker) để nhận lệnh và thực thi mã từ xa.
+
+**$\rightarrow$ Đáp án: `4444`**
+
 ## E. Hack The Box:
 ### 1. Packet Puzzle:
 - [Link bài lab](https://app.hackthebox.com/sherlocks/Packet%2520Puzzle?tab=play_sherlock)
