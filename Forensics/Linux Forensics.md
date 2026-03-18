@@ -87,7 +87,7 @@ Các loại file system được Linux hỗ trợ:
 - Một phân vùng là một vùng chứa trong đó có một file system được lưu trữ, trong vài trường hợp thì file system có thể mở rộng hơn một phân vùng nếu file system dùng các liên kết.
 - File system là một phương pháp lưu trữ hoặc tìm kiếm các files trên một đĩa cứng (trong một phân vùng).
 - So sánh giữa file system trên Windows và Linux:
-
+  
 ![image](https://hackmd.io/_uploads/H1Kfv0bPZl.png)
 
 ## II. Các tính năng nâng cao:
@@ -141,13 +141,14 @@ Nhật ký có thể vận hành trong ba mode khác nhau, mỗi cái đều man
 > ![image](https://hackmd.io/_uploads/rkoUHp-t-l.png)
 > - Xem xét 8 bit trong bitmap inode để biểu thị trạng thái phân bổ của các inode 11 đến 18 trong bảng. Giá trị `1` trong bitmap nghĩa là inode đã được phân bổ để giữ superdata cho một file, giá trị `0` nghĩa là inode hiện không được dùng.
 > - Trong trường hợp file có superdata trong inode 17 bị xoá thì trạng thái bitmap tương ứng của nó sẽ trở thành `0`, cho biết nó có thể được dùng tự do bởi file khác.
+>   
 > ![image](https://hackmd.io/_uploads/ry-yIaWKWe.png)
 
 #### c) Cách xem số inode cho một file:
 Có hai cách:
 - Dùng lệnh `ls` với switch `-i`, theo sau là tên file. Trường đầu tiên trong đầu ra là số inode có superdata của file.
 - Dùng `stat <filename>`:
-
+  
 ![image](https://hackmd.io/_uploads/rJq88TbFbl.png)
 - Để xem tổng số lượng inode có sẵn cho một phân vùng, dùng lệnh `df` với switch `-i`.
 
@@ -196,7 +197,7 @@ s_log_block_size: 2
 - Có thể thấy rằng, command trên in ra block size là `2`, nó là giá trị $log2$. Để chuyển nó thành thập phân, ta có thể dùng công thức $2^{10 + s\_log\_block\_size}$. Với giá trị $2%, ta có $4096$ ($2^{12}$) là block size.
 - Tương tự, ta có thể xuất phần còn lại của các tham số trong superblock dựa trên cấu trúc dữ liệu.
 - Một số key fields:
-
+  
 ![image](https://hackmd.io/_uploads/Sk_veTbF-g.png)
 - Từ đây, có thể suy ra rằng các vị trí bộ nhớ trên ổ đĩa được nhóm lại cùng nhau thành một block có size là $4096$. Các blocks này được kết hợp tiếp thành block groups có $32768$ blocks. Và có $400$ ($13106688/32768$) block groups.
 - Một khi ta hiểu được các giá trị này, ta có thể xem xét mô tả về block group để tìm thông tin về inode.
@@ -246,11 +247,11 @@ mount -t file_system_type device_to_mount directory_to_mount_to
 - Đảm bảo rằng các files và thư mục được sắp xếp một cách nhất quán trong các hệ thống, giúp việc quản lý và tìm kiếm dữ liệu trở nên thuận lợi hơn.
 - Định nghĩa mục đích của mỗi thư mục, giúp việc bảo trì hệ thống, phát triển phần mềm và chia sẻ dữ liệu giữa các bản phân phối Linux trở nên dễ dàng hơn.
 - Cấu trúc cây thư mục trong Linux:
-
+  
 ![image](https://hackmd.io/_uploads/BkacvkMDWx.png)
 ![image](https://hackmd.io/_uploads/HJV-KyMPZl.png)
 - Linux dùng `/` để tách các đường dẫn (Windows dùng `\`).
-
+  
 ![image](https://hackmd.io/_uploads/ByIDdyGPWx.png)
 - Các thư mục được mô tả:
     - `/root` - Thư mục gốc:
@@ -724,6 +725,7 @@ Chứa các bản ghi đăng nhập.
 #### `cat`:
 - [`cat` command](https://phoenixnap.com/kb/linux-cat-command) hiển thị toàn bộ nội dung của một file.
 > `sudo cat /var/log/syslog`
+> 
 > ![image](https://hackmd.io/_uploads/Hy0CtM_tbe.png)
 - Output gồm timestamp, hostname, process name, PID và một message.
 
@@ -732,6 +734,7 @@ Chứa các bản ghi đăng nhập.
 - Cho phép đi đến các file lớn một cách dễ dàng mà không cần tải toàn bộ file trong bộ nhớ.
 - Command này cũng hỗ trợ chuyển trang bằng cách cuộn, search và các command điều hướng khác, lý tưởng cho việc kiểm tra chi tiết log files một cách hiệu quả.
 > `sudo less /var/log/syslog`
+> 
 > ![image](https://hackmd.io/_uploads/rk985GutZx.png)
 - Để điều hướng output, dùng các phím:
     - Phím Mũi Tên Xuống hoặc phím `j` để xuống một dòng.
@@ -747,6 +750,7 @@ Chứa các bản ghi đăng nhập.
 > ``` linux
 > sudo <span style="background-color: initial; font-family: inherit; font-size: inherit; color: initial;">more /var/log/syslog</span>
 > ```
+> 
 > ![image](https://hackmd.io/_uploads/HyKtczOY-l.png)
 - Không giống `less`, command `more` không hỗ trợ điều hước lùi và thiếu chức năng tìm kiếm và phân tích nâng cao. Để điều hướng output:
     - Nhấn phím `Spacebar` để chuyển tiếp một trang.
@@ -758,17 +762,20 @@ Chứa các bản ghi đăng nhập.
 - [`tail` command](https://phoenixnap.com/kb/linux-tail) hiển thị mười mục cuối cùng của một file, bao gồm log files.
 - Tiện cho việc quản lý log files trong thời gian thực hay kiểm tram nhanh chóng các mục hiện tại.
 > `sudo tail /var/log/syslog`
+> 
 > ![image](https://hackmd.io/_uploads/SJ32tfdKZx.png)
 
 #### `head`:
 - [`head` command](https://phoenixnap.com/kb/linux-head) in ra phần đầu của file. Nó hữu dụng cho việc kiểm tra nhanh các mục đầu tiên của log files.
 > `sudo head /var/log/syslog`
+> 
 > ![image](https://hackmd.io/_uploads/BkQ39z_KZl.png)
 
 #### `grep`:
 - [`grep` command](https://phoenixnap.com/kb/grep-command-linux-unix-examples) tìm kiếm các mẫu cụ thể hoặc text trong một file.
 - Khi dùng với log files, `grep` nhận diện các mục chứa keywords hoặc pattern cụ thể, khiến nó hữu ích trong việc phân lập thông tin liên quan trong quá trình khắc phục sự cố hay phân tích.
 > `sudo grep "error" /var/log/syslog`
+> 
 > ![image](https://hackmd.io/_uploads/SkexiMut-x.png)
 
 #### `awk`:
@@ -778,6 +785,7 @@ Chứa các bản ghi đăng nhập.
 > ``` linux
 > sudo awk '/error/ {print $1, $2, $3, $5}' /var/log/syslog
 > ```
+> 
 > ![image](https://hackmd.io/_uploads/Sk17szuKWe.png)
 
 #### `sed`:
@@ -786,6 +794,7 @@ Chứa các bản ghi đăng nhập.
 > ``` linux
 > sudo sed -n '/error/p' /var/log/syslog
 > ```
+> 
 > ![image](https://hackmd.io/_uploads/BydIoMOKZx.png)
 
 #### `dmesg`:
@@ -807,6 +816,7 @@ Chứa các bản ghi đăng nhập.
 > ``` linux
 > sudo journalctl --since "2024-06-19"
 > ```
+> 
 > ![image](https://hackmd.io/_uploads/SkSxhGuYWg.png)
 
 #### Dùng GUI Tools:
@@ -842,6 +852,7 @@ Chứa các bản ghi đăng nhập.
     > ```
     - Định nghĩa log rules đến để chỉ rõ làm thế nào logs được xử lý.
     > Ví dụ: Để log lại tất cả messages xác thực đến một file cụ thể:
+    > 
     > ![image](https://hackmd.io/_uploads/By57YbPFWx.png)
     > ``` linux
     > # Log all authentication messages 
@@ -862,6 +873,7 @@ Chứa các bản ghi đăng nhập.
 > Ví dụ:
 > - Chạy command `sudo nano /etc/rsyslog.d/custom-log.conf`.
 > - Add cấu hình sau tới messages trực tiếp từ tiện ích `local0` tới một custom log file: `local0.* /var/log/custom.log`
+>   
 > ![image](https://hackmd.io/_uploads/SkHHR-Dt-x.png)
 > - Đảm bảo custom logfile tồn tại và có quyền phù hợp bằng cách dùng command [`touch`](https://phoenixnap.com/kb/touch-command-in-linux), [`chown`](https://phoenixnap.com/kb/linux-chown-command-with-examples) và [`chmod`](https://phoenixnap.com/kb/chmod-recursive) (không có output):
 > ``` linux
@@ -879,7 +891,7 @@ Chứa các bản ghi đăng nhập.
 - Để rotate một log file:
     - Tạo hoặc edit một file trong `/etc/logrotate.d` cho custom log rotation. Ví dụ: `sudo nano /etc/logrotate.d/customlog`
     - Trong phần edit, add cấu hình sau vào:
-  
+      
     ![image](https://hackmd.io/_uploads/SkhQxGvF-l.png)
     ``` linux
     /var/log/lognamehere.log {
@@ -899,7 +911,7 @@ Chứa các bản ghi đăng nhập.
         - `create`: Tượng trưng cho nơi một log file có owner và group là root user.
     - Lưu và thoát file.
     - Chạy `logrotate` trong debug mode để test cấu hính mà không thực hiện bất kỳ thay đổi nào: `sudo logrotate -d /etc/logrotate.conf`
-  
+      
     ![image](https://hackmd.io/_uploads/B1evbfPKZx.png)
     - Để apply log rotation ngay lập tức, dùng command `sudo logrotate -f /etc/logrotate.conf` (không output).
 
@@ -955,18 +967,13 @@ Chứa các bản ghi đăng nhập.
     - `ausearch`: Một tiện ích cho việc tìm kiếm các audit log với các event đặc biệt.
     - `aureport`: Một tiện ích để tạo các báo cáo về event được ghi lại.
 
-### 4. Các quy tắc Audit:
-- Control rules: Cho phép sửa đổi hành vi của hệ thống audit và một vài cấu hình của nó.
-- File system rules: Cho phép audit một file nhất định hoặc một thư mục.
-- System call rules: Cho phép ghi log bất kỳ chương trình hệ thống nào
-
-### 5. Cách cài đặt `auditd`:
+### 4. Cách cài đặt `auditd`:
 - Kiểm tra xem nó được cài chưa:
-
+  
 ![image](https://hackmd.io/_uploads/BJAwALpFbx.png)
 - Nếu chưa, tiến hành cài đặt. Command nếu dùng Ubuntu: `sudo apt install auditd audispd-plugins -y`
 - Sau khi cài, kiểm tra trạng thái:
-
+  
 ![image](https://hackmd.io/_uploads/HJ5TJD6Y-e.png)
 - Để thực hiện log hoạt động của tất cả user:
     - Mở file `/etc/audit/rules.d/audit.rules` bằng `sudo nano` và thêm hai dòng sau vào cuối file:
@@ -977,7 +984,7 @@ Chứa các bản ghi đăng nhập.
     - Restart: `sudo service auditd restart`
     - Mặc định log sẽ được lưu trữ ở file `/var/log/audit/audit.log`.
 
-### 6. Sử dụng `auditd`:
+### 5. Sử dụng `auditd`:
 - Để hiểu cách `auditd` hoạt động thì cần phải hiểu cách hoạt động của Linux daemon:
     - Một daemon là tiến trình ngầm không phục thuộc vào sự tương tác của active user,... Một user chung sẽ không thể kiểm soát sự thực thi chu kỳ của một daemon. Nó được khởi chạy khi Linux khởi động, và một tiến trình ban đầu sẽ hoạt động như tiến trình cha của nó. Để bắt đầu và dừng daemon, `/etc/init.d` scripts trên OS nên được truy cập đầu tiên.
     - Trong Linux, một daemon process có hậu tố `d`. Dùng hậu tố này, ta có thể phân biệt tiến trình nào là daemon hay hệ thống, hay tiến trình user. Bởi định nghĩa này, `auditd` là một tiến trình daemon.
@@ -1029,32 +1036,13 @@ Chứa các bản ghi đăng nhập.
         - Tên danh sách hợp lệ: `task`, `exit`, `user`, `exclude`
         - Tên hành động hợp lệ: `never`, `always`
         - Các cặp có thể có thể được sắp xếp ở thứ tự `(list, action)` hoặc `(action, list)`.
-> List các rule đã được load:
-> 
-> ![image](https://hackmd.io/_uploads/Bk3i-_aFWl.png)
 - Tạo `auditd` reports:
-    - `aureport` là công cụ viết reports tổng hợp cho logs của hệ thống audit.
-    - Reports chứa nhãn cột ở phần top giúp ta hiểu các trường khác nhau.
-    - Tất cả reports đều có số hiệu audit event trừ report tổng hợp chính.
-    - Một số keywords:
-        - `-k`: Report về audit rule keys.
-        - `-i`: Chuyển đổi các thực thể số thành văn bản (Ví dụ: UID được chuyển đổi thành tên tài khoản).
-        - `-au`: Report về các nỗ lực xác thực.
-        - `-l`: Report về các hành động đăng nhập.
-    - Các lệnh `aureport` thường dùng:
-        - `sudo aureport -au`: Report về các nỗ lực xác thực.
-        - `sudo aureport -m`: Report tất cả event liên quan đến việc chỉnh sửa account.
-        - Xem thêm bằng `sudo man aureport`
-- Một số tiện ích khác:
-    - Có hai cách định nghĩa Audit rule có hiệu lực vĩnh viễn ngay cả khi nó khởi động lại:
-        - Thêm rõ ràng các rule vào file `/etc/audit/rules.d/audit.rules`,
-        - Chạy chương trình `augenrules` để đọc rule từ thư mục `/etc/audit/rules.d/`.
-    - Để add audit rule để tìm kiếm tiến trình và lưu thông tin audit trong audit logs khi audit daemon đang chạy, dùng `autrace`:
-        - `autrace` chạy một chương trình từ lúc nó tồn tại.
-        - Tuy nhiên, biện pháp phòng ngừa này sẽ không chạy trừ khi tất cả rules bị xoá bằng `auditctl` vì `autrace` xoá tất cả audit rule trước khi thực thi chương trình mục tiêu và sau khi thực thi nó.
-    - Để phân tích log events bắt bởi `auditd`, dùng `autdisp`.
-        - Phân bổ audits events tới các chương trình con để phân tích nó theo thời gian thực.
-        - Là bộ ghép kênh audit event được bắt đầu bởi audit daemon.
-    - Để quay lại (return) thông tin cần thiết cho việc phân tích:
-    - `aulast`: In danh sách users đăng nhập gần đây nhất. Nó tìm kiếm trong audit logs và hiển thị danh sách users đã đăng nhập và đăng xuất.
-    - `aulastlog`: Return chi tiết những lần đăng nhập mới nhất của tất cả machine users bằng cách in ra tên đăng nhập, port, và thời gian đăng nhập gần nhất. Trường port và time sẽ hiển thị `Never logged in` nếu một user chưa từng đăng nhập.
+    - `aureport`
+- Các lệnh `aureport` thường dùng:
+    - `sudo aureport -au`: Report về các nỗ lực xác thực.
+    - `sudo aureport -m`: Report tất cả event liên quan đến việc chỉnh sửa account.
+    - Xem thêm bằng `sudo man aureport`.
+
+### VII. `/etc/shadow`:
+- Là file hệ thống trong đó mật khẩu user được mã hóa để không sẵn có cho những người cố gắng xâm nhập vào hệ thống
+- Chi tiết hơn: [Understanding `/etc/shadow` file format on Linux](https://www.cyberciti.biz/faq/understanding-etcshadow-file/)
