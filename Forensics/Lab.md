@@ -922,6 +922,112 @@ password: P@ssw0rd123456!
 
 **$\rightarrow$ Đáp án: `7F 7A 42 44 B7 42 44 F6`**
 
+### 7. Lab 07:
+#### Kịch bản:
+- Bạn đang làm việc cho một cơ quan tài chính vừa bị tấn công bởi một malware. Rumors cho rằng attacker đã để lại bốn malware khác nhau trên hệ thống, nhưng chỉ có một cái là hàng thật, những cái còn lại làm bạn tốn thời gian.
+- May mắn thay, đội phản ứng đầu tiên đã collect toàn bộ bốn malware. Nhiệm vụ của bạn là phân tích mỗi mẫu để trích xuất các thông tin hữu ích về chúng (flag).
+- Bốn file cần phân tích ở [link](https://github.com/vonderchild/digital-forensics-lab/blob/main/Lab%2007/files/tasks).
+
+#### Phân tích cách làm:
+- Vào thử link được cho thì ta thấy có bốn file và file `task4` mang đuôi `.py` nên file này đáng nghi nhất:
+
+![image](https://hackmd.io/_uploads/r10oB3o5-x.png)
+- Tải từng file về:
+``` ubuntu
+wget https://github.com/vonderchild/digital-forensics-lab/blob/main/Lab%2007/files/tasks
+```
+- Xem loại file vừa tải là gì:
+
+![image](https://hackmd.io/_uploads/ByEAn3icbe.png)
+Tất cả đều là file ELF (file thực thi).
+- Kiểm tra dung lượng tất cả thì `task4.py` khác biệt nhất:
+
+![image](https://hackmd.io/_uploads/Bk6Sahj9-g.png)
+- Thử đọc nội dung `task4.py`:
+
+![image](https://hackmd.io/_uploads/rJF2ThiqWx.png)
+- Kiểm tra các file còn lại xem có strings nào con người có thể đọc, thì ở trong `task1`:
+
+![image](https://hackmd.io/_uploads/Hk4-C3iqbe.png)
+![image](https://hackmd.io/_uploads/HkBf03oqWl.png)
+Có thể thấy flag `flag{s0mH3_susp1cH10us_strH1ng}`, kiểm tra ba file còn lại thì không có flag.
+- Mở Cutter để phân tích các file còn lại:
+    - `task2`:
+      
+    ![image](https://hackmd.io/_uploads/rky7eTocbg.png)
+    ![image](https://hackmd.io/_uploads/SJoCl6s5Wg.png)
+    - `task3`:
+      
+    ![image](https://hackmd.io/_uploads/S1aHWaoc-e.png)
+    - `task4.py`:
+      
+    ![image](https://hackmd.io/_uploads/ByuYWpscWl.png)
+- Ta thấy rằng `task2` khá đáng nghi, lên Gemini tìm hiểu đoạn code có ý nghĩa gì thì được:
+  
+![image](https://hackmd.io/_uploads/SksVzas5bx.png)
+Nghĩa là ta phải chạy file `task2` và nhập lần lượt theo thứ tự các số `23`, `1337`, `252`. Nếu ta nhập đúng như thế thì nó sẽ lấy độ dài của string đã chuẩn bị trong `main` rồi thực hiện tính `s[var_10h] = s[var_10h] ^ (uint8_t)var_24h;`, nghĩa là lấy từng kí tự string ban đầu XOR với 252 (`0xfc`). Sau đó ta sẽ có kết quả cuối cùng là `Decrypted string`. Thực thi `task2`:
+
+![image](https://hackmd.io/_uploads/SyvLQaoqWg.png)
+> Đây là kỹ thuật malware **Obfuscated Strings** (công nghệ dùng bởi các ứng dụng độc quyền, mã nguồn đóng để bảo vệ quyền sở hữu trí tuệ, cũng để giấu malware). Thay vì để các string như địa chỉ IP hay command độc hại ở dạng plaintext, malware sẽ giấu dưới dạng một mảng byte lộn xộn và chỉ giải mã ra bộ nhớ sau khi vượt qua các bước test.
+- Tiếp tục với `task3`:
+  
+![image](https://hackmd.io/_uploads/S1aHWaoc-e.png)
+    - Nhờ Gemini phân tích đoạn code:
+    ![image](https://hackmd.io/_uploads/HyY5v6jqbg.png)
+    Nghĩa là ta chỉ cần thực thi `task3`.
+    - Chạy thử:
+    ![image](https://hackmd.io/_uploads/HJxbd6i5Zl.png)
+    Có flag nhưng chỉ hiện ra một nửa.
+    - Thử `ltrace`:
+    ![image](https://hackmd.io/_uploads/rJjs_ai9-x.png)
+    Kết quả vẫn chỉ có một nửa là `flag{r3v3rs2_2n`, vì vòng lặp tối đa 15 lần.
+    - Theo [write-up mạng](https://medium.com/@dewa9902/malware-analysis-lab-07-digital-forensics-b9a1227583a7), trong hàm `do_shenanigans()`, ta cần thay đổi `0xf` thành `0x1c`, nhưng ta vẫn không hiểu nó muốn làm gì.
+    - Flag trong write-up: `flag{r3v3rs3_3ng1n33r1ng_1z1}`
+- Phân tích `task4.py`:
+  
+    ![image](https://hackmd.io/_uploads/rJF2ThiqWx.png)
+    ![image](https://hackmd.io/_uploads/BJPNYpiq-g.png)
+    - Thử thay `exec(a)` bằng `print` để xem code:
+    ``` py
+    from zlib import decompress
+
+    m = "789cad53df739a40107ef7aff08d38cd74ce4330ccb49d395011f911114af1262f781002825845e0f8eb73674cda3cf4ad0f3bc7ee7efbedb7cb6c561eab533ddc45e7449edc0f491527e43c28a33423c3ef43011f56cdce5367e450b4b1fe707161d1467a400dbda889aed05853d54d603b5af9e137a405e6ccad58ac2e120f29866e64440c5a5b5c3d93dec949ee80109efbc43318c601c60ca446bed9dbbd0bec1ebf6c4b57140645d5245c81dd1b14435ca2d2a3a8dd88768b28f29763ab5fe6761be4d8b724d5473dea6725723bc9f603867624ec7680e500729763ecd2de5a5922763dcae210b918a8bad761b891109c5f50493b5c620995c7316e02b4ae41280cd22ae602128d8f505cc83200a6b65aec0e9b82646abb0d9d3e860ac5b32a35b2bda3a5c08c7e6"
+    a = "d538e5f7bea0987fb0bd6837c073785a9ed65b692d4d050ba7d5f211bdbfd19f8562915317de17825828164696acd6b84419c9cebec40b9086de979cb42423a987b2630dc59d3a175e3d4c1fab1b357b8d6168fedc17cdcd966f062fb467b8c68fe7b7d694ee69c1e0ba93ff64a7af08d49e823102e3e6a33962b4f2602f60aec78ddb69f530b2a9dbda84938e35bc8abab80a76e0a9f3af999bd93a74e1c33633fa93e5dce354b274d54dc318c1c33633979ca4c61260aa3e1973f69f18d426614b2f4e64f99c1e473ec6f0c7c602fb9b5966f31e643c0bea35b9cb582cae7565cc195e6ff28b87d732c5fc075385673edfc0f35836b535295c7ac48eede2eeceb4e9eb00b635776f72e89d3f1dd4e3fe885d1e85ef876ae4fd921fd21dc0b49971061347a05d05b2f77"
+
+    l = m + a
+    w = bytes.fromhex(l)
+    decoded_payload = decompress(w)
+    print(decoded_payload.decode('utf-8'))
+    ```
+    ![image](https://hackmd.io/_uploads/ryef9ps5Zl.png)
+    - Giải mã các biến trên và thay vào lại:
+      
+    ![image](https://hackmd.io/_uploads/Bkze7As5Wg.png)
+    ``` py
+    import base64, codecs
+
+    magic = 'ZnJvbSBDcnlwdG8uQ2lwaGVyIGltcG9ydCBBRVMNCmltcG9ydCBvcw0KDQoNCmtleSA9IGIic3VwM3JfczNjcjN0X2szeSINCmN0ID0gIjRkMzQ0MzZhYmQ3'
+    love = 'MzIyZ2ZmAmSyAwR3MwAyATH1LzHjMwVjZTL5BTAzAzDmAQx5MTV2ZmN5ZQx0ZTL0AQH1ZQyzLJL3ZQSyZQx2AQZ0BGSxZ2R5A2EuAmyxZmZ5Amp1ZvVAPt0X'
+    god = 'eCA9IGlucHV0KCJFbnRlciBwYXNzd29yZDogIikNCg0KaWYgeCA9PSBrZXkuZGVjb2RlKCk6DQogICAgY2lwaGVyID0gQUVTLm5ldyhrZXk9a2V5LCBtb2Rl'
+    destiny = 'CHSSHl5AG0ESK0IQDvxAPvNtVPOxMJZtCFOwnKObMKVhMTIwpayjqPuvrKEypl5zpz9gnTI4XTA0XFxAPvNtVPOipl5mrKA0MJ0bMTIwYzEyL29xMFtcXD0X'
+    joy = 'rot13'
+
+    trust_encoded = magic + codecs.decode(love, joy) + god + codecs.decode(destiny, joy)
+    final_code = base64.b64decode(trust_encoded).decode('utf-8')
+    print(final_code)
+    ```
+    ![image](https://hackmd.io/_uploads/HJyKspj9Wl.png)
+    Nghĩa là ta phải thực thi `task4.py` và điền `sup3r_s3cr3t_k3y`.
+    - Chạy `task4`:
+      
+    ![image](https://hackmd.io/_uploads/r1IQh6j5-l.png)
+
+#### Kết quả:
+- `task1`: `flag{s0mH3_susp1cH10us_strH1ng}`
+- `task2`: `flag{sup3r_s1mpl3_x0r}`
+- `task3.py`: `flag{r3v3rs3_3ng1n33r1ng_1z1}`
+- `task4`: `flag{4_m3d10cr3_m4lw4r3_ch4ll3nge}`
+
 ## B. TryHackMe:
 ### I. Task 10 - Windows Forensics 1:
 *Link tham khảo: [TryHackMe](https://tryhackme.com/room/windowsforensics1)*
