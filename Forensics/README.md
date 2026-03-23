@@ -39,8 +39,13 @@
 
 ### V. Linux Forensics:
 [Link Write - up](https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/H1Itm0-PZx)
-### VI. Mail Forensics:
-### VII. Malware Analyst:
+
+### VI. Malware Analysis:
+[Link Write - up](https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/rJIW3955We)
+
+### VII. Memory Forensics:
+[Link Write - up](https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/BkDLZKA5-l)
+
 ## B. Một số Linux commands:
 ### 1. Thay đổi thư mục làm việc hiện tại:
 - Command cơ bản: `cd [path]`
