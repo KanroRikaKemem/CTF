@@ -244,6 +244,9 @@ PNG và JPEG là hai dạng image formats phổ biến, chúng có thể đượ
 - Với file JPEG/JPG, phương pháp steganography phổ biến gồm tìm cặp vị trí trong image sao cho việc trao đổi giá trị của chúng có tác dụng nhúng phần message bí mật tương ứng. Nếu không có cặp nào được tìm thấy, các pixels trong những vị trí còn lại đơn giản là bị ghi đè lên.
 - Dùng tool `steghide` để ẩn và trích các messages khỏi JPEG files.
 - Một tool khác là `exiftool`, nó hữu dụng trong việc trích metadata từ các files như image hay audio (chứa thông tin như thời gian tạo và điều chỉnh, author và vị trí chụp ảnh (kinh độ, vĩ độ)).
+- Khái niệm **ELA (Error Level Analysis)**:
+    - Là kĩ năng quan trọng trong forensics liên quan tới ảnh, dựa trên nguyên lý ảnh `.jpg` khi được lưu lại nhiều lần (re-save) hoặc bị chỉnh sửa cục bộ sẽ có mức độ nén không đồng nhất.
+    - Chi tiết hơn về ELA: https://en.wikipedia.org/wiki/Error_level_analysis
 
 ###### GIF:
 - GIF dễ bị khai thác vì đa frame, palette và timing:
