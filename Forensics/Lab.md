@@ -1028,6 +1028,49 @@ Nghĩa là ta phải chạy file `task2` và nhập lần lượt theo thứ t�
 - `task3.py`: `flag{r3v3rs3_3ng1n33r1ng_1z1}`
 - `task4`: `flag{4_m3d10cr3_m4lw4r3_ch4ll3nge}`
 
+### 8. Lab 08:
+#### 1. Đề bài:
+Bạn là một điều tra viên pháp y kỹ thuật số cấp cao làm việc cho một cơ quan tình báo chuyên điều tra tội phạm mạng. Gần đây, họ đã đạt được một bước đột phá lớn trong một vụ án chống lại một băng đảng mã độc tống tiền khét tiếng và đã bắt giữ được một số thành viên của băng đảng, bao gồm cả thủ lĩnh của chúng. Trong quá trình bắt giữ, nhóm điều tra đã thu thập được các bản sao lưu bộ nhớ từ máy tính của từng thành viên trong băng đảng.
+Có nghi ngờ rằng thủ lĩnh đang sử dụng Windows 7 vào thời điểm đó và đã giấu một số thông tin bí mật liên quan đến hoạt động của băng đảng trên máy tính của hắn. Là một thành viên cấp cao trong nhóm, cơ quan tình báo đã tin tưởng giao cho bạn bản sao bộ nhớ máy tính của thủ lĩnh và giao nhiệm vụ cho bạn tìm kiếm thông tin bí mật có thể được giấu ở những nơi sau:
+- Nó có thể đã được sao chép vào clipboard.
+- Nó có thể đã được tìm kiếm trên internet.
+- Nó có thể đã được lưu trong một biến môi trường.
+- Nó có thể đã được thực thi như một lệnh.
+- Nó có thể đã được vẽ bằng MSPaint.
+> - Thông tin bí mật cần tìm có dạng flag với định dạng `flag{xxxx}`. Có tổng cộng năm flags cần tìm.
+> - Memory dump có thể tải ở: https://drive.google.com/file/d/1Gm7huRq0aa1is1dv0LqJcABcRYlS-Sqn/view?usp=sharing
+
+#### 2. Phân tích cách làm:
+Ta sẽ dùng Volatility 2 để giải challenge này.
+- Nhận diện profile hệ thống bằng Volatility:
+![image](https://hackmd.io/_uploads/Bkj1yqu2bl.png)
+Có thể thấy profile là `Win7SP1x64`.
+- Kiểm tra clipboard:
+![image](https://hackmd.io/_uploads/Hkdel9O2We.png)
+Flag đầu tiên là `flag{s0m3_stuff_c0p13d_1n_th3_cl1pb0ard}`.
+- Kiểm tra lịch sử tìm kiếm Internet:
+![image](https://hackmd.io/_uploads/SyyPG9_h-x.png)
+![image](https://hackmd.io/_uploads/S1L_z5_2-e.png)
+Ta tìm thấy `flag{1nt3rn3t_3xpl0r3r_h1st0ry_1n_m3m0ry_dump}`.
+- Kiểm tra biến môi trường:
+![image](https://hackmd.io/_uploads/H1k6m9_2Ze.png)
+Sau khi lần mò thì ta được flag `flag{3nv1r0nm3nt_v4r14bl3_c4n_4ls0_b3_3xtr4ct3d_fr0m_m3m0ry_dump}`.
+- Kiểm tra lệnh đã thực thi:
+![image](https://hackmd.io/_uploads/HkfsP5_n-e.png)
+Có thể thấy rằng một chuỗi base64 được ghi vào `flag.txt`. Giải mã chuỗi ta được `flag{g00d_0ld_c0ns0l3_h1st0ry}`:
+![image](https://hackmd.io/_uploads/BkpRPqOhbl.png)
+- Để khôi phục ảnh từ MSPaint, nếu vẽ thông tin bí mật rồi tắt ứng dụng mà không lưu, dữ liệu vẫn có thể nằm trong vùng nhớ của process `mspaint.exe`. Tìm PID rồi dump bộ nhớ ra rồi đọc file:
+![image](https://hackmd.io/_uploads/r1klzidh-e.png)
+Có thể thấy flag là `flag{h1dd3n_1n_th3_n01s3}`.
+
+
+#### 3. Kết quả:
+`flag{s0m3_stuff_c0p13d_1n_th3_cl1pb0ard}`
+`flag{1nt3rn3t_3xpl0r3r_h1st0ry_1n_m3m0ry_dump}`
+`flag{3nv1r0nm3nt_v4r14bl3_c4n_4ls0_b3_3xtr4ct3d_fr0m_m3m0ry_dump}`
+`flag{g00d_0ld_c0ns0l3_h1st0ry}`
+`flag{h1dd3n_1n_th3_n01s3}`
+
 ## B. TryHackMe:
 ### I. Task 10 - Windows Forensics 1:
 *Link tham khảo: [TryHackMe](https://tryhackme.com/room/windowsforensics1)*
