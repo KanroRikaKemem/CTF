@@ -1071,7 +1071,111 @@ Có thể thấy flag là `flag{h1dd3n_1n_th3_n01s3}`.
 `flag{g00d_0ld_c0ns0l3_h1st0ry}`
 `flag{h1dd3n_1n_th3_n01s3}`
 
-## B. TryHackMe:
+## B. MemLabs:
+> Link: https://github.com/stuxnet999/MemLabs
+
+### 1. Lab 0 - Never Too Late Mister:
+#### a) Đề bài:
+- Bạn tôi, John, là một **nhà hoạt động môi trường** và nhà nhân đạo. Anh ấy **ghét tư tưởng của Thanos** trong phim Avengers: Infinity War. Anh ấy lập trình rất tệ. Anh ấy **dùng rất nhiều biến khi viết chương trình**. Một ngày nọ, John đưa cho tôi một memory dump và nhờ tôi tìm hiểu xem anh ấy đang làm gì trong lúc sao chép dữ liệu. Bạn có thể tìm ra giúp tôi không?
+- Link bài lab: https://drive.google.com/file/d/1MjMGRiPzweCOdikO3DTaVfbdBK5kyynT/view
+
+#### b) Phân tích cách làm:
+- Ta dùng Volatility 2 để phân tích bài này. Kiểm tra `imageinfo`:
+![image](https://hackmd.io/_uploads/H1kHgYjhZx.png)
+- Kiểm tra các tiến trình đang chạy:
+```
+python2 vol.py -f "/mnt/c/Users/Ha Nguyen/Desktop/Challenge/Challenge.raw" --profile=Win7SP1x86 pslist
+```
+![image](https://hackmd.io/_uploads/ByPxZKinWe.png)
+Chú ý thấy có các tiến trình:
+`cmd.exe`: Command Prompt
+`DumpIt.exe`: Tiến trình dùng để phân tích memory dump.
+`Explorer.exe`: Quản lý File Explorer.
+- Vì Command Prompt đang chạy nên ta sẽ kiểm tra xem có commands nào đang được thực thi không:
+![image](https://hackmd.io/_uploads/BkXBGtihbe.png)
+Có một command là `C:\Python27\python.exe C:\Users\hello\Desktop\demon.py.txt`.
+- Check Python script vừa tìm được xem nó có output nào không:
+![image](https://hackmd.io/_uploads/Hy7RMtonbe.png)
+Ta thấy chuỗi hex `335d366f5d6031767631707f`, thử giải mã thì được:
+```
+3]6o]`1vv1p
+```
+- Vì trong đề có nhắc đến `environment` nên ta thử kiểm tra biến môi trường:
+``` ubuntu
+python2 vol.py -f "/mnt/c/Users/Ha Nguyen/Desktop/Challenge/Challenge.raw" --profile=Win7SP1x86 envars
+```
+Và tìm được:
+``` ubuntu
+484 services.exe         0x001007f0 Thanos                         xor and password
+```
+- Thử XOR chuỗi `335d366f5d6031767631707f`:
+``` py
+a = bytes.fromhex("335d366f5d6031767631707f")
+
+for i in range(256):
+    res = "".join(chr(b ^ i) for b in a)
+    print(res)
+```
+Ta tìm được chuỗi output thứ ba `1_4m_b3tt3r}` trong 256 chuỗi output.
+- Tiếp tục với phần `password`, trích xuất phần NTLM password hashes:
+![image](https://hackmd.io/_uploads/rypbiKoh-l.png)
+Dùng tool online:
+![image](https://hackmd.io/_uploads/ryYH3ti2We.png)
+
+#### c) Kết quả
+`flag{you_are_good_but1_4m_b3tt3r`
+
+### 2. Lab 1 - Beginner's Luck:
+> This challenge is composed of 3 flags.
+
+#### a) Đề bài:
+- My sister's computer crashed. We were very fortunate to recover this memory dump. Your job is get all her important files from the system. From what we remember, we suddenly saw **a black window pop up with some thing being executed. When the crash happened, she was trying to draw something**. Thats all we remember from the time of crash.
+- Link bài lab: https://mega.nz/#!6l4BhKIb!l8ATZoliB_ULlvlkESwkPiXAETJEF7p91Gf9CWuQI70
+
+#### b) Phân tích cách làm:
+- Ta dùng Volatility2, kiểm tra `imageinfo`:
+![image](https://hackmd.io/_uploads/H1Jc1qj2Wg.png)
+- Thử kiểm tra tiến trình đang thực thi:
+![image](https://hackmd.io/_uploads/H1m5Nqjn-l.png)
+Có thể thấy các tiến trình như `cmd.exe`, `mspaint.exe`, `WinRAR.exe`.
+- Kiểm tra Command Prompt:
+![image](https://hackmd.io/_uploads/HJk5Snj3be.png)
+- Kiểm tra consoles:
+![image](https://hackmd.io/_uploads/B1--P5i2Wx.png)
+![image](https://hackmd.io/_uploads/r1mUP9o3-x.png)
+Ta thấy:
+    ```
+    C:\Users\SmartNet>St4G3$1
+    ZmxhZ3t0aDFzXzFzX3RoM18xc3Rfc3Q0ZzMhIX0=
+    ```
+    Giải mã chuỗi base64 `ZmxhZ3t0aDFzXzFzX3RoM18xc3Rfc3Q0ZzMhIX0=` ta được `flag{th1s_1s_th3_1st_st4g3!!}`.
+- `mspaint.exe` giữ toàn bộ canvas trong RAM, ta thử dump memory của tiến trình này rồi chuyển nó ra Desktop và đổi tên thành `2424.data`:
+    ``` ubuntu
+    python2 vol.py -f "/mnt/c/Users/Ha Nguyen/Desktop/MemLabs-Lab1/MemoryDump_Lab1.raw" --profile=Win7SP1x64 memdump -p 2424 --dump-dir=./
+    ```
+    Dùng GIMP mở file vừa rồi phân tích với thông số như sau:
+![image](https://hackmd.io/_uploads/Hk7W02jnZl.png)
+![image](https://hackmd.io/_uploads/Syg503j2bg.png)
+Có thể đọc được là `flag{Good_Boy_good_girl}`
+- Kiểm tra `cmdline` của `WinRAR.exe`:
+![image](https://hackmd.io/_uploads/HJV81ainZe.png)
+Có thể thấy `C:\Users\Alissa Simpson\Documents\Important.rar`, ta dùng `filescan` để lấy offset:
+![image](https://hackmd.io/_uploads/ByInxaoh-l.png)
+Dump file vừa rồi ra, đổi tên rồi giải nén:
+![image](https://hackmd.io/_uploads/H1TimTi3Ze.png)
+Có thể thấy flag là ảnh `.png` nhưng file nén này yêu cầu mật khẩu là NTLM hash password của Alissa.
+- Lấy NTLM hash password rồi giải nén:
+![image](https://hackmd.io/_uploads/BJwG8pinbx.png)
+Ta có được hash là `f4ff64c8baac57d22f22edc681055ba6`, chuyển thành chữ in hoa là `F4FF64C8BAAC57D22F22EDC681055BA6`. Giải nén với password vừa tìm được:
+![image](https://hackmd.io/_uploads/rkJawpo3Ze.png)
+![flag3](https://hackmd.io/_uploads/ryV-_aonZl.png)
+
+#### c) Kết quả:
+`flag{th1s_1s_th3_1st_st4g3!!}`
+`flag{Good_Boy_good_girl}`
+`flag{w3ll_3rd_stage_was_easy}`
+
+## C. TryHackMe:
 ### I. Task 10 - Windows Forensics 1:
 *Link tham khảo: [TryHackMe](https://tryhackme.com/room/windowsforensics1)*
 #### 1. Đề bài:
