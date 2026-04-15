@@ -1175,6 +1175,65 @@ Ta có được hash là `f4ff64c8baac57d22f22edc681055ba6`, chuyển thành ch�
 `flag{Good_Boy_good_girl}`
 `flag{w3ll_3rd_stage_was_easy}`
 
+### 3. Lab 2 - A New World:
+> This challenge is composed of 3 flags.
+
+#### a) Đề bài:
+- One of the clients of our company, lost the access to his system due to an unknown error. He is supposedly a very popular "**environmental**" activist. As a part of the investigation, he told us that his **go to applications are browsers**, his **password managers**, etc. We hope that you can dig into this memory dump and find his important stuff and give it back to us.
+- Link bài lab: https://mega.nz/#!ChoDHaja!1XvuQd49c7-7kgJvPXIEAst-NXi8L3ggwienE1uoZTk
+
+#### b) Phân tích cách làm:
+- Dùng Volatility 2 để giải challenge, ta kiểm tra `imageinfo`:
+![image](https://hackmd.io/_uploads/rkm3bCnhbe.png)
+- Kiểm tra thử các tiến trình đang chạy:
+![image](https://hackmd.io/_uploads/rkz-zRhhWx.png)
+Có thể thấy các tiến trình cần nên kiểm tra là `cmd.exe`, `chrome.exe`, `notepad.exe`.
+- Thử kiểm tra `cmdscan` và `consoles`:
+![image](https://hackmd.io/_uploads/Hkw0fC22Zl.png)
+![image](https://hackmd.io/_uploads/Bk-G7RhhZe.png)
+Ta thấy `Nothing here kids :)` .-.
+- Kiểm tra thử các biến môi trường ta thấy được một số điểm đáng nghi:
+![image](https://hackmd.io/_uploads/SkO67A22Zl.png)
+Decode mã base64 `ZmxhZ3t3M2xjMG0zX1QwXyRUNGczXyFfT2ZfTDRCXzJ9` thì ta được `flag{w3lc0m3_T0_$T4g3_!_Of_L4B_2}`.
+![image](https://hackmd.io/_uploads/rkVeNA22-l.png)
+- Kiểm tra lịch sử trình duyệt:
+![image](https://hackmd.io/_uploads/SJUC8AnnZl.png)
+![image](https://hackmd.io/_uploads/rJ1ePA3nZe.png)
+![image](https://hackmd.io/_uploads/SyagPA3nWl.png)
+Có rất nhiều sự đáng nghi ở đây, cụ thể là `Password.png`, `Hidden.kdbx` (KeePass database (password manager), `SW1wb3J0YW50.rar` (decode base64 được `Important.rar`, `stAg3_5.txt`. Thử tìm offset của các file trên rồi dump ra:
+![image](https://hackmd.io/_uploads/SyyhqAhnZl.png)
+Chỉ được hai file .-.
+- Mở `Password.png`:
+![image](https://hackmd.io/_uploads/ByK6nCh3Zg.png)
+Có dòng chữ nhỏ là `P4SSw0rd_123`
+- Chạy `keepass2 Hidden.kdbx` rồi nhập password vừa tìm được để vào:
+![image](https://hackmd.io/_uploads/ryz26R3hWl.png)
+Thử tìm thì:
+![image](https://hackmd.io/_uploads/BJJQJkphbg.png)
+![image](https://hackmd.io/_uploads/SJyVy1p2be.png)
+Ta tìm được `flag{w0w_th1s_1s_Th3_SeC0nD_ST4g3_!!}`
+- Tải plugin `chromehistory` về rồi chạy plugin:
+    ``` ubuntu
+    cd ~/volatility/volatility/plugins
+    wget https://raw.githubusercontent.com/superponible/volatility-plugins/master/chromehistory.py
+    wget https://raw.githubusercontent.com/superponible/volatility-plugins/master/sqlite_help.py
+    pip2 install construct==2.8.10
+    ```
+    ![image](https://hackmd.io/_uploads/SkV0_k62Zg.png)
+Ta tìm được một [mega link](https://mega.nz/#F!TrgSQQTS!H0ZrUzF0B-ZKNM3y9E76lg), truy cập thử thì:
+![image](https://hackmd.io/_uploads/ryfUFkTnWe.png)
+- Tải file về và giải nén thì ta bị yêu cầu password như sau:
+![image](https://hackmd.io/_uploads/BkZec1p3Wg.png)
+Lấy password:
+![image](https://hackmd.io/_uploads/B1579JanWe.png)
+Giải nén file với password trên:
+![Important](https://hackmd.io/_uploads/H1rziypnWe.png)
+
+#### c) Kết quả:
+`flag{w3lc0m3_T0_$T4g3_!_Of_L4B_2}`
+`flag{w0w_th1s_1s_Th3_SeC0nD_ST4g3_!!}`
+`flag{oK_So_Now_St4g3_3_is_DoNE!!}`
+
 ## C. TryHackMe:
 ### I. Task 10 - Windows Forensics 1:
 *Link tham khảo: [TryHackMe](https://tryhackme.com/room/windowsforensics1)*
