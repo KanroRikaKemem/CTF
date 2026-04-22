@@ -1234,6 +1234,66 @@ Giải nén file với password trên:
 `flag{w0w_th1s_1s_Th3_SeC0nD_ST4g3_!!}`
 `flag{oK_So_Now_St4g3_3_is_DoNE!!}`
 
+### 4. Lab 3 - The Evil's Den:
+#### a) Đề bài:
+- A malicious script encrypted a very secret piece of information I had on my system. Can you recover the information for me please?
+> - Note-1: This challenge is composed of only 1 flag. The flag split into 2 parts.
+> - Note-2: You'll need the first half of the flag to get the second
+> - You will need this additional tool to solve the challenge:
+> ``` ubuntu
+> $ sudo apt install steghide
+> ```
+- Link bài lab: https://mega.nz/#!2ohlTAzL!1T5iGzhUWdn88zS1yrDJA06yUouZxC-VstzXFSRuzVg
+
+#### b) Phân tích cách làm:
+- Kiểm tra `imageinfo`:
+![image](https://hackmd.io/_uploads/rJqMzHU6-g.png)
+- Kiểm tra các tiến trình đang chạy:
+![image](https://hackmd.io/_uploads/B1MuGBU6Ze.png)
+Các tiến trình `notepad.exe`, `msiexec.exe`, `audiodg.exe`, `wuauclt.exe` có vẻ nên được kiểm tra thêm.
+- Kiểm tra `cmdline`:
+![image](https://hackmd.io/_uploads/rk0twr8TWe.png)
+Thấy có `C:\Users\hello\Desktop\evilscript.py` và `C:\Users\hello\Desktop\vip.txt` khá đáng nghi. Tìm offset của các file trên rồi dump ra:
+![image](https://hackmd.io/_uploads/S1gVcH8pbg.png)
+Đọc nội dung của hai file trên:
+![image](https://hackmd.io/_uploads/BkM2qSLaWl.png)
+Giải mã `vip.txt` từ script trên:
+    ``` py
+    import base64
+
+    def decrypt(data):
+        decoded = base64.b64decode(data).decode('utf-8')
+        original = ''.join(chr(ord(i) ^ 3) for i in decoded)
+        return original
+
+    encoded_str = "am1gd2V4M20wXGs3b2U="
+    print(decrypt(encoded_str))
+    ```
+    Ta được phần đầu của flag là `inctf{0n3_h4lf`.
+- Kiểm tra `cmdscan` và `consoles`:
+![image](https://hackmd.io/_uploads/r1pTQrI6-l.png)
+![image](https://hackmd.io/_uploads/HJmeVSU6Zl.png)
+Kết quả rất là hỏi chấm?
+![image](https://hackmd.io/_uploads/S1_NErIpZe.png)
+Không có gì đặc biệt trong `consoles`.
+- Kiểm tra `envars`:
+![image](https://hackmd.io/_uploads/B11pNHLaWg.png)
+- Vì đề bài có gợi ý đến `steghide` nên nghĩa là có file ảnh hoặc âm thanh nào đó, thử tìm nó:
+![image](https://hackmd.io/_uploads/ByagaBIpWe.png)
+Có rất nhiều nhưng ta chú ý đến:
+    ``` ubuntu
+    0x0000000004f34148      2      0 RW---- \Device\HarddiskVolume2\Users\hello\Desktop\suspision1.jpeg
+    ```
+    Thử dump nó ra và đổi tên:
+    ![image](https://hackmd.io/_uploads/SyhTpB8aZl.png)
+- Vì đề bài gợi ý cần nửa đầu flag để có nửa sau, khi tìm hiểu cách dùng `steghide` thì ta có:
+![image](https://hackmd.io/_uploads/ByqYJ8LaZg.png)
+Thử dùng `inctf{0n3_h4lf` như một passphrase:
+![image](https://hackmd.io/_uploads/rke4gUL6-x.png)
+Đọc nội dung của file được xuất, ta tìm được nửa còn lại của flag là `_1s_n0t_3n0ugh}`.
+#### c) Kết quả:
+`inctf{0n3_h4lf_1s_n0t_3n0ugh}`
+
 ## C. TryHackMe:
 ### I. Task 10 - Windows Forensics 1:
 *Link tham khảo: [TryHackMe](https://tryhackme.com/room/windowsforensics1)*
