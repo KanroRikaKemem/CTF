@@ -1294,6 +1294,78 @@ Thử dùng `inctf{0n3_h4lf` như một passphrase:
 #### c) Kết quả:
 `inctf{0n3_h4lf_1s_n0t_3n0ugh}`
 
+### 6. Lab 5 - Black Tuesday:
+#### a) Đề bài:
+We received this memory dump from our client recently. Someone **accessed his system** when he was not there and he found **some rather strange files being accessed**. Find those files and they might be useful. I quote his exact statement,
+> The **names were not readable**. They were **composed of alphabets and numbers** but I wasn't able to make out what exactly it was.
+
+Also, he noticed his **most loved application that he always used crashed every time he ran it**. Was it a **virus**?
+
+> Note-1: This challenge is composed of 3 flags. If you think 2nd flag is the end, it isn't!! :P
+> Note-2: There was a small mistake when making this challenge. If you find any string which has the string "L4B_3_D0n3!!" in it, please change it to "L4B_5_D0n3!!" and then proceed.
+> Note-3: You'll get the stage 2 flag only when you have the stage 1 flag.
+- Link bài lab: https://mega.nz/#!Ps5ViIqZ!UQtKmUuKUcqqtt6elP_9OJtnAbpwwMD7lVKN1iWGoec
+
+#### b) Phân tích kết quả:
+- Check the `imageinfo`:
+![image](https://hackmd.io/_uploads/SySWYoOTWx.png)
+- Check for the list of processes running by the time the memory dumped.
+![image](https://hackmd.io/_uploads/HJvv5s_abx.png)
+Maybe `NOTEPAD.EXE` is suspecious because we have `notepad.exe`. Moreover, `WinRAR.exe` and `WerFault.exe` are also suspects.
+- Check for plugins `cmdline`, `cmdscan`, and `consoles`:
+![image](https://hackmd.io/_uploads/S1HrCoO6bx.png)
+By using plugin `cmdline`, as we can see, there are some suspecious objects that we discussed earlier. We have to investigate `SW1wb3J0YW50.rar`. In contrast, I didn't found any abnormalities by using plugin.
+![image](https://hackmd.io/_uploads/B1qaghda-x.png)
+![image](https://hackmd.io/_uploads/B1PAenup-l.png)
+- Check for plugin `pstree`:
+![image](https://hackmd.io/_uploads/ryujz2OpWg.png)
+As we can see, `explorer.exe` is the parent of `NOTEPAD.EXE`, and I think this point is normal, but `NOTEPAD.EXE` is still suspecious. Especially, there are various processes of `NOTEPAD.EXE`, so I will use plugin `psxview` to get the PID:
+![image](https://hackmd.io/_uploads/SJ8g41Y6bl.png)
+Dump it by using command `procdump -p <PID> -D ./` to extract from RAM:
+![image](https://hackmd.io/_uploads/SJfFEJK6bl.png)
+Using `strings` and the output is:
+![image](https://hackmd.io/_uploads/H1k_rkt6Zl.png)
+This code is often embedded into `.exe` file to said to Windows that it was Notepad and require rights to use necessary interface libaries.
+- Check for plugin `iehistory`:
+![image](https://hackmd.io/_uploads/SJd8n3u6be.png)
+![image](https://hackmd.io/_uploads/BJDD23d6Wl.png)
+![image](https://hackmd.io/_uploads/Hyjdn3_6be.png)
+![image](https://hackmd.io/_uploads/H19hnhOp-e.png)
+![image](https://hackmd.io/_uploads/r1rhTnOTZx.png)
+![image](https://hackmd.io/_uploads/BkBGRnOpZg.png)
+![image](https://hackmd.io/_uploads/HkaCAn_Tbg.png)
+There are some suspecious file like `Important.rar`, `SW1wb3J0YW50.rar`, `stAg3_5.txt`, `Password.png`, `New%20Text%20Document.txt`, `Hidden.kdbx`, `ZmxhZ3shIV93M0xMX2QwbjNfU3Q0ZzMtMV8wZl9MNEJfM19EMG4zXyEhfQ.bmp`, and `St4g3$1.txt`. If I click links in the output, the results are `Error 404`, or they shows normal output. Besides that, when I decode some base64 codes in the output above, they are unreadable, except `ZmxhZ3shIV93M0xMX2QwbjNfU3Q0ZzMtMV8wZl9MNEJfM19EMG4zXyEhfQ`:
+![image](https://hackmd.io/_uploads/BylwPb6u6-l.png)
+The first flag is `flag{!!_w3LL_d0n3_St4g3-1_0f_L4B_5_D0n3_!!}` because in `Note-2` of the description, they said that `L4B_5_D0n3!!` is the correct string, not the string `L4B_3_D0n3!!`.
+- Find the offset of suspecious files above:
+![image](https://hackmd.io/_uploads/H1mXS6uabx.png)
+Maybe `Important.rar`, `stAg3_5.txt`, `Password.png`, `New%20Text%20Document.txt`, `Hidden.kdbx`, `ZmxhZ3shIV93M0xMX2QwbjNfU3Q0ZzMtMV8wZl9MNEJfM19EMG4zXyEhfQ.bmp`, and `St4g3$1.txt` were deleted. I will dump `SW1wb3J0YW50.rar`:
+![image](https://hackmd.io/_uploads/HJOBPTd6Zx.png)
+![image](https://hackmd.io/_uploads/H1rVDaua-g.png)
+We need a password for `Stage2.png`, so we have to check for `.mft` file to find traces of file deletion by using plugin `mftparser > mft_report.txt`.
+![image](https://hackmd.io/_uploads/S1SpdTuTWx.png)
+We cannot find anything, so we will try another way.
+- Because the description said "You'll get the stage 2 flag only when you have the stage 1 flag" so I think `flag{!!_w3LL_d0n3_St4g3-1_0f_L4B_5_D0n3_!!}` is the password. We will try it:
+![image](https://hackmd.io/_uploads/HkBoHCdp-g.png)
+It works .-.
+![image](https://hackmd.io/_uploads/rJeGU0_a-g.png)
+The second flag is `flag{W1th_th1s_$taGe_2_1s_c0mPL3T3_!!}`
+- I have no idea, so I refer to [someone's write up](https://mmox.me/posts/writeups/memlabs-lab5/). They dumped the file and used IDA without explanation. I guess that because virus is refered to in the description, so I try using Cutter to analyse `executable.2724.exe` (Static Analysis):
+![image](https://hackmd.io/_uploads/S1qG9yF6Ze.png)
+![image](https://hackmd.io/_uploads/ryeC31Yabg.png)
+The third flag is `bi0s{M3m_l4b5_OVeR_!}`.
+> These commands below will help us to download and install Cuttter:
+> ``` ubuntu
+> wget https://github.com/rizinorg/cutter/releases/download/v2.2.0/Cutter-v2.2.0-Linux-x86_64.AppImage
+> chmod +x Cutter-v2.2.0-Linux-x86_64.AppImage
+> ./Cutter-v2.2.0-Linux-x86_64.AppImage --appimage-extract
+> ./squashfs-root/AppRun
+> ```
+#### c) Kết quả:
+`flag{!!_w3LL_d0n3_St4g3-1_0f_L4B_5_D0n3_!!}`
+`flag{W1th_th1s_$taGe_2_1s_c0mPL3T3_!!}`
+`bi0s{M3m_l4b5_OVeR_!}`
+
 ## C. TryHackMe:
 ### I. Task 10 - Windows Forensics 1:
 *Link tham khảo: [TryHackMe](https://tryhackme.com/room/windowsforensics1)*
