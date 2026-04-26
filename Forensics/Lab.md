@@ -1366,6 +1366,83 @@ The third flag is `bi0s{M3m_l4b5_OVeR_!}`.
 `flag{W1th_th1s_$taGe_2_1s_c0mPL3T3_!!}`
 `bi0s{M3m_l4b5_OVeR_!}`
 
+### 7. Lab 6 - The Reckoning:
+#### a) Đề bài:
+- We received this memory dump **from the Intelligence Bureau Department**. They say this evidence might hold **some secrets of the underworld gangster David Benjamin**. This memory dump was taken from one of his workers whom the FBI busted earlier this week. Your job is to go through the memory dump and see if you can figure something out. FBI also says that **David communicated with his workers via the internet** so that might be a good place to start.
+> Note: This challenge is composed of 1 flag split into 2 parts.
+> The flag format for this lab is: `inctf{s0me_l33t_Str1ng}`
+- Link bài lab: https://mega.nz/#!C0pjUKxI!LnedePAfsJvFgD-Uaa4-f1Tu0kl5bFDzW6Mn2Ng6pnM
+
+#### b) Phân tích cách làm:
+- Check for `imageinfo`:
+![image](https://hackmd.io/_uploads/SJj4T9j6-x.png)
+- Check for `pstree`:
+![image](https://hackmd.io/_uploads/H1bv1soT-l.png)
+As we can see, `WinRAR.exe`, `cmd.exe` and `firefox.exe` are some suspects.
+- Check for `cmdline`, `cmdscan` and `consoles`:
+![image](https://hackmd.io/_uploads/rk4K4jsabe.png)
+![image](https://hackmd.io/_uploads/r1eH-sjpWl.png)
+![image](https://hackmd.io/_uploads/HJb9-jspZg.png)
+Perhaps `AUDIODG.EXE`, `chrome.exe`, and `WmiApSrv.exe` is also suspects. Moreover, we found `flag.rar`.
+![image](https://hackmd.io/_uploads/BJ92MjiaZe.png)
+![image](https://hackmd.io/_uploads/rJK5Qsj6bx.png)
+When I checked two plugins `cmdscan` and `consoles`, I saw strings `whoami` and `env`.
+- Trying finding the offset of `flag.rar`:
+![image](https://hackmd.io/_uploads/HJXpNoopWx.png)
+Dump it to investigate:
+![image](https://hackmd.io/_uploads/B1ASBooTWl.png)
+I have to find the password to unrar `flag.rar`.
+- Check for plugin `iehistory`:
+![image](https://hackmd.io/_uploads/B1Jx5oipbl.png)
+![image](https://hackmd.io/_uploads/H1KTussTWe.png)
+![image](https://hackmd.io/_uploads/ry24ujopZg.png)
+![image](https://hackmd.io/_uploads/H1N8_ijaZe.png)
+I think these file above are so suspecious. I will find the offset:
+![image](https://hackmd.io/_uploads/SyKfosjabg.png)
+We cannot find anything.
+- Download plugin `firefoxhistory` with the code below:
+    ``` ubuntu
+    cd ~/volatility/volatility/plugins
+    wget https://raw.githubusercontent.com/superponible/volatility-plugins/master/firefoxhistory.py
+    wget https://raw.githubusercontent.com/superponible/volatility-plugins/master/sqlite_help.py
+    pip2 install construct==2.8.10
+    ```
+    Check for `firefoxhistory` and nothing happened:
+    ![image](https://hackmd.io/_uploads/BJMA0ij6Ze.png)
+    Check for `chromehistory` and I found this:
+    ![image](https://hackmd.io/_uploads/rkmXb3o6Wg.png)
+    Trying accessing the [link](https://pastebin.com/RSGSi1hk):
+    ![image](https://hackmd.io/_uploads/H1RUb2j6bx.png)
+    I found a [link](https://www.google.com/url?q=https://docs.google.com/document/d/1lptcksPt1l_w7Y29V4o6vkEnHToAPqiCkgNNZfS9rCk/edit?usp%3Dsharing&sa=D&source=hangouts&ust=1566208765722000&usg=AFQjCNHXd6Ck6F22MNQEsxdZo21JayPKug) of Google Docs and the name `David`. Trying accessing the link:
+    ![image](https://hackmd.io/_uploads/SyQ1Gns6-l.png)
+    ![image](https://hackmd.io/_uploads/Syooz3jaZe.png)
+    And I found a [link](https://mega.nz/#!SrxQxYTQ). Access it:
+    ![image](https://hackmd.io/_uploads/S1xJlQhj6bx.png)
+    Damn :) We need a key. We know that David sent the key in mail, but I got stuck and tried using all plugins of Volatility, and...:
+    ![image](https://hackmd.io/_uploads/S1ThL3jpZe.png)
+    In `session_1.WinSta0.Default.png`:
+    ![session_1.WinSta0.Default](https://hackmd.io/_uploads/ryhcP2sa-g.png)
+    I will trying finding the string `Mega Drive Key` in `MemoryDump_Lab6.raw`:
+    ![image](https://hackmd.io/_uploads/BJXV32iTbx.png)
+    And we found the key is `zyWxCjCYYSEMA-hZe552qWVXiPwa5TecODbjnsscMIU`. Use it to break the code and then I received `flag_.png`, but:
+    ![image](https://hackmd.io/_uploads/BJeosnjTWl.png)
+    The file is corrupted :) Check the image file by `xxd` and what I saw:
+    ![image](https://hackmd.io/_uploads/S16-anjpZg.png)
+    It must be `IHDR` instead of `iHDR`, so I have to change `i (69)` to `I (49)` by HxD:
+    ![image](https://hackmd.io/_uploads/SkcyC3ia-g.png)
+    After I changed it:
+    ![image](https://hackmd.io/_uploads/H1VUR2oaWl.png)
+    ![flag_](https://hackmd.io/_uploads/BJZuR2spZg.png)
+    The first part of the flag is `inctf{thi5_cH4LL3Ng3_!s_g0nn4_b3_}`.
+- Trying checking for environment variables:
+![image](https://hackmd.io/_uploads/SkPRyTjTZx.png)
+And luckily, the password of `flag.rar` is `easypeasyvirus`. Unrar the file:
+![image](https://hackmd.io/_uploads/rkLNgpoaZl.png)
+![image](https://hackmd.io/_uploads/H1mdeTi6Wl.png)
+The last part of flag is `aN_Am4zINg_!_i_gU3Ss???_}`
+#### c) Kết quả:
+`inctf{thi5_cH4LL3Ng3_!s_g0nn4_b3_aN_Am4zINg_!_i_gU3Ss???_}`
+
 ## C. TryHackMe:
 ### I. Task 10 - Windows Forensics 1:
 *Link tham khảo: [TryHackMe](https://tryhackme.com/room/windowsforensics1)*
