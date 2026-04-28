@@ -1309,23 +1309,21 @@ Also, he noticed his **most loved application that he always used crashed every 
 #### b) Phân tích kết quả:
 - Check the `imageinfo`:
 ![image](https://hackmd.io/_uploads/SySWYoOTWx.png)
-- Check for the list of processes running by the time the memory dumped.
-![image](https://hackmd.io/_uploads/HJvv5s_abx.png)
-Maybe `NOTEPAD.EXE` is suspecious because we have `notepad.exe`. Moreover, `WinRAR.exe` and `WerFault.exe` are also suspects.
-- Check for plugins `cmdline`, `cmdscan`, and `consoles`:
-![image](https://hackmd.io/_uploads/S1HrCoO6bx.png)
-By using plugin `cmdline`, as we can see, there are some suspecious objects that we discussed earlier. We have to investigate `SW1wb3J0YW50.rar`. In contrast, I didn't found any abnormalities by using plugin.
-![image](https://hackmd.io/_uploads/B1qaghda-x.png)
-![image](https://hackmd.io/_uploads/B1PAenup-l.png)
 - Check for plugin `pstree`:
 ![image](https://hackmd.io/_uploads/ryujz2OpWg.png)
-As we can see, `explorer.exe` is the parent of `NOTEPAD.EXE`, and I think this point is normal, but `NOTEPAD.EXE` is still suspecious. Especially, there are various processes of `NOTEPAD.EXE`, so I will use plugin `psxview` to get the PID:
-![image](https://hackmd.io/_uploads/SJ8g41Y6bl.png)
-Dump it by using command `procdump -p <PID> -D ./` to extract from RAM:
+Maybe `NOTEPAD.EXE` is suspecious because we have `notepad.exe`. Moreover, `WinRAR.exe` and `WerFault.exe` are also suspects. As we can see, `explorer.exe` is the parent of `NOTEPAD.EXE`, and I think this point is normal, but `NOTEPAD.EXE` is still suspecious. Especially, there are various processes of `NOTEPAD.EXE`.
+- Check for plugins `cmdline`, `cmdscan`, and `consoles`:
+![image](https://hackmd.io/_uploads/S1HrCoO6bx.png)
+By using plugin `cmdline`, as we can see, there are some suspecious objects that we discussed earlier, and the PID of `NOTEPAD.EXE` is `2724`. We have to investigate `SW1wb3J0YW50.rar`. In contrast, I didn't found any abnormalities by using plugin.
+![image](https://hackmd.io/_uploads/B1qaghda-x.png)
+![image](https://hackmd.io/_uploads/B1PAenup-l.png)
+- Dump `NOTEPAD.EXE` by using command `procdump -p <PID> -D ./` to extract from RAM:
 ![image](https://hackmd.io/_uploads/SJfFEJK6bl.png)
 Using `strings` and the output is:
 ![image](https://hackmd.io/_uploads/H1k_rkt6Zl.png)
-This code is often embedded into `.exe` file to said to Windows that it was Notepad and require rights to use necessary interface libaries.
+This code is often embedded into `.exe` file to said to Windows that it was Notepad and require rights to use necessary interface libaries. Trying using Detect It Easy to investigate `executable.2724.exe`:
+![image](https://hackmd.io/_uploads/S1xqsy66Zx.png)
+The file was written by C/C++ so I will use IDA or Cutter to analyse it later.
 - Check for plugin `iehistory`:
 ![image](https://hackmd.io/_uploads/SJd8n3u6be.png)
 ![image](https://hackmd.io/_uploads/BJDD23d6Wl.png)
@@ -1350,10 +1348,14 @@ We cannot find anything, so we will try another way.
 It works .-.
 ![image](https://hackmd.io/_uploads/rJeGU0_a-g.png)
 The second flag is `flag{W1th_th1s_$taGe_2_1s_c0mPL3T3_!!}`
-- I have no idea, so I refer to [someone's write up](https://mmox.me/posts/writeups/memlabs-lab5/). They dumped the file and used IDA without explanation. I guess that because virus is refered to in the description, so I try using Cutter to analyse `executable.2724.exe` (Static Analysis):
+- Using Cutter to analyse `executable.2724.exe` (Static Analysis):
 ![image](https://hackmd.io/_uploads/S1qG9yF6Ze.png)
 ![image](https://hackmd.io/_uploads/ryeC31Yabg.png)
 The third flag is `bi0s{M3m_l4b5_OVeR_!}`.
+> When we use IDA to analyse the file:
+> ![image](https://hackmd.io/_uploads/SkEBlx6aZl.png)
+> ![image](https://hackmd.io/_uploads/rySwllaTZg.png)
+
 > These commands below will help us to download and install Cuttter:
 > ``` ubuntu
 > wget https://github.com/rizinorg/cutter/releases/download/v2.2.0/Cutter-v2.2.0-Linux-x86_64.AppImage
@@ -1361,6 +1363,20 @@ The third flag is `bi0s{M3m_l4b5_OVeR_!}`.
 > ./Cutter-v2.2.0-Linux-x86_64.AppImage --appimage-extract
 > ./squashfs-root/AppRun
 > ```
+
+> How to install DIE - Detect It Easy:
+> - Run these commands below:
+> ``` ubuntu
+> sudo apt update
+> sudo apt install libqt5gui5 libqt5core5a libqt5widgets5 libqt5network5 libqt5script5 libqt5scripttools5 -y
+> ```
+> - Access this [link](https://github.com/horsicq/DIE-engine/releases) and copy the link of the lastest version of `.deb` file that we want to download, then run `wget <link>`.
+> - Run these commands below:
+> ``` ubuntu
+> sudo dpkg -i die_*.deb
+> sudo apt --fix-broken install -y
+> ```
+
 #### c) Kết quả:
 `flag{!!_w3LL_d0n3_St4g3-1_0f_L4B_5_D0n3_!!}`
 `flag{W1th_th1s_$taGe_2_1s_c0mPL3T3_!!}`
