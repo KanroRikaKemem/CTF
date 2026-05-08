@@ -1029,7 +1029,7 @@ Nghĩa là ta phải chạy file `task2` và nhập lần lượt theo thứ t�
 - `task4`: `flag{4_m3d10cr3_m4lw4r3_ch4ll3nge}`
 
 ### 8. Lab 08:
-#### 1. Đề bài:
+#### a) Đề bài:
 Bạn là một điều tra viên pháp y kỹ thuật số cấp cao làm việc cho một cơ quan tình báo chuyên điều tra tội phạm mạng. Gần đây, họ đã đạt được một bước đột phá lớn trong một vụ án chống lại một băng đảng mã độc tống tiền khét tiếng và đã bắt giữ được một số thành viên của băng đảng, bao gồm cả thủ lĩnh của chúng. Trong quá trình bắt giữ, nhóm điều tra đã thu thập được các bản sao lưu bộ nhớ từ máy tính của từng thành viên trong băng đảng.
 Có nghi ngờ rằng thủ lĩnh đang sử dụng Windows 7 vào thời điểm đó và đã giấu một số thông tin bí mật liên quan đến hoạt động của băng đảng trên máy tính của hắn. Là một thành viên cấp cao trong nhóm, cơ quan tình báo đã tin tưởng giao cho bạn bản sao bộ nhớ máy tính của thủ lĩnh và giao nhiệm vụ cho bạn tìm kiếm thông tin bí mật có thể được giấu ở những nơi sau:
 - Nó có thể đã được sao chép vào clipboard.
@@ -1040,7 +1040,7 @@ Có nghi ngờ rằng thủ lĩnh đang sử dụng Windows 7 vào thời điể
 > - Thông tin bí mật cần tìm có dạng flag với định dạng `flag{xxxx}`. Có tổng cộng năm flags cần tìm.
 > - Memory dump có thể tải ở: https://drive.google.com/file/d/1Gm7huRq0aa1is1dv0LqJcABcRYlS-Sqn/view?usp=sharing
 
-#### 2. Phân tích cách làm:
+#### b) Phân tích cách làm:
 Ta sẽ dùng Volatility 2 để giải challenge này.
 - Nhận diện profile hệ thống bằng Volatility:
 ![image](https://hackmd.io/_uploads/Bkj1yqu2bl.png)
@@ -1064,12 +1064,106 @@ Có thể thấy rằng một chuỗi base64 được ghi vào `flag.txt`. Giả
 Có thể thấy flag là `flag{h1dd3n_1n_th3_n01s3}`.
 
 
-#### 3. Kết quả:
+#### c) Kết quả:
 `flag{s0m3_stuff_c0p13d_1n_th3_cl1pb0ard}`
 `flag{1nt3rn3t_3xpl0r3r_h1st0ry_1n_m3m0ry_dump}`
 `flag{3nv1r0nm3nt_v4r14bl3_c4n_4ls0_b3_3xtr4ct3d_fr0m_m3m0ry_dump}`
 `flag{g00d_0ld_c0ns0l3_h1st0ry}`
 `flag{h1dd3n_1n_th3_n01s3}`
+
+### 9. Lab 09:
+#### a) Đề bài:
+- The container image you will be working with was built using the following Dockerfile:
+``` docker
+FROM alpine:latest
+
+RUN echo "flag{?????????}" > flag1.txt
+
+COPY flag2-part1.txt flag2-part1.txt
+
+ADD flag2-part2.txt flag2-part2.txt
+
+ENV flag3 flag{?????????}
+
+CMD ["sh", "-c", "echo flag{?????????}"]
+
+# I don't know, this line got corrupted I guess, but I'm sure you'll figure it out
+COPY ????????????????????????????????????
+
+# Deleting my secrets, I'm sure nobody will be able to see them now :D
+RUN rm flag1.txt flag2-part1.txt flag2-part2.txt
+```
+- Link download the container image inside the tar archive: https://github.com/vonderchild/digital-forensics-lab/blob/main/Lab%2009/files/secrets.tar
+- It contains a total of five hidden flags needed to find.
+
+#### b) Phân tích cách làm:
+- Using `dive` to analyse the container image inside the tar archive. Run these commands below to download and install this tool:
+``` ubuntu
+wget https://github.com/wagoodman/dive/releases/download/v0.12.0/dive_0.12.0_linux_amd64.deb
+sudo apt install ./dive_0.12.0_linux_amd64.deb
+```
+- Load `.tar` and using `docker images`:
+![image](https://hackmd.io/_uploads/BJeCbKi0Wg.)
+![image](https://hackmd.io/_uploads/HkCZGFiCbl.png)
+- Analyse it by using command `dive <image_id_hoặc_name>`:
+![image](https://hackmd.io/_uploads/HkkdxFoR-g.png)
+We found the first flag in the second layer: `flag{th1s_w4s_4n_34sy_0n3}`
+![image](https://hackmd.io/_uploads/S1VplYoCZe.png)
+![image](https://hackmd.io/_uploads/Sk40eYsRWl.png)
+![image](https://hackmd.io/_uploads/HJTgbKsAWg.png)
+![image](https://hackmd.io/_uploads/Byv7btiRWg.png)
+- Initiate the image:
+    ``` ubuntu
+    docker run -it --name phan_tich_container 27b200a78755 sh
+    ```
+    Open another Terminal to analyse it and get the container ID and image ID:
+    ![image](https://hackmd.io/_uploads/Ska3NtiRZx.png)
+    - Analyse the container metadata:
+    ![image](https://hackmd.io/_uploads/SyYVSFi0-e.png
+    ![image](https://hackmd.io/_uploads/B1bJYts0-x.png)
+    And we found the third flag.
+    - Check if there has any process existing in the container:
+    ![image](https://hackmd.io/_uploads/rJ4TrYiAWg.png)
+    - Dump the memory of the process having PID `2420`:
+    ![image](https://hackmd.io/_uploads/BJ6c8tjC-x.png)
+    - Trying checking for the string `flag` and we have found the third flag too, it is `flag{3nv1r0nm3nt_v4r1abl3s_1ns1d3_c0nta1n3rs}`:
+    ![image](https://hackmd.io/_uploads/rJkyDtsAZx.png)
+    - Check for the history of the image:
+    ![image](https://hackmd.io/_uploads/HJGxdYoCZl.png)
+    There are two flags :))) But I have found them before.
+- Using `dive` again. At the third layer, I saw a green line (indicatting there is a new file added) having the string `flag2-part1.txt`:
+![image](https://hackmd.io/_uploads/Sy1tqKiAZg.png)
+In the Layer Details, we have the ID of  third layer is `2336840b6581528adfb39f5a9dcd4ee10297e7cccb3d7b7eada4279cf88d027b`. Exit the `dive` and find which layer containing `flag2-part1.txt`:
+![image](https://hackmd.io/_uploads/BJfapKjAWe.png)
+- Using `strings` to find the string `flag{`, the result is:
+![image](https://hackmd.io/_uploads/S1mW0tjCZl.png)
+We have found the first part of second flag. It is `flag{dr34d_1t_run_f0r_1t_`.
+> If we pay attention carefully, we can see the fourth flag.
+- Using `dive` again. At the fourth player:
+![image](https://hackmd.io/_uploads/SJuqCFjAbl.png
+Check for folder `78323bfdc56789ddb0df6330bc8e3b641752c27aa594e6ca21d0115dd71090e8` in `secrets.tar`:
+![image](https://hackmd.io/_uploads/ByvX1qi0Zl.png)
+Extract `layer.tar`:
+![image](https://hackmd.io/_uploads/H1Vv1qjA-l.png)
+The second part of the second flag is `d3st1ny_4rr1v3s_4ll_7h3_s4m3}`.
+- Showing the figuration of the cointainer and filtering the string `Cmd`:
+![image](https://hackmd.io/_uploads/Byr0lqsR-g.png)
+The fourth flag is `flag{th1s_w4s_4n0th3r_34sy_0n3`.
+- Using `dive` again, we can see `secret.txt`:
+![image](https://hackmd.io/_uploads/ryMLZciC-g.png)
+Extract `78f5e7ff9b9409eaadf09d30285307e4f88f792209ba718b4104bb3767d40fbf` in `secrets.tar`. Then we have a base54 data in `secret.txt`:
+    ```
+    ZmxhZ3tjMG5ncjR0c18wbl9mMW5kMW5nX3RoM19uMHRfczBfdzNsbF9oMWRkM25fczNjcjN0fQ==
+    ```
+    The final flag is `flag{c0ngr4ts_0n_f1nd1ng_th3_n0t_s0_w3ll_h1dd3n_s3cr3t}`:
+    ![image](https://hackmd.io/_uploads/B1zUM9iRbl.png)
+
+#### c) Kết quả:
+`flag{th1s_w4s_4n_34sy_0n3}`
+`flag{dr34d_1t_run_f0r_1t_d3st1ny_4rr1v3s_4ll_7h3_s4m3}`
+`flag{3nv1r0nm3nt_v4r1abl3s_1ns1d3_c0nta1n3rs}`
+`flag{th1s_w4s_4n0th3r_34sy_0n3}`
+`flag{c0ngr4ts_0n_f1nd1ng_th3_n0t_s0_w3ll_h1dd3n_s3cr3t}`
 
 ## B. MemLabs:
 > Link: https://github.com/stuxnet999/MemLabs
