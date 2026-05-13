@@ -1165,6 +1165,83 @@ Extract `78f5e7ff9b9409eaadf09d30285307e4f88f792209ba718b4104bb3767d40fbf` in `s
 `flag{th1s_w4s_4n0th3r_34sy_0n3}`
 `flag{c0ngr4ts_0n_f1nd1ng_th3_n0t_s0_w3ll_h1dd3n_s3cr3t}`
 
+### 10. Lab 10:
+#### a) Đề bài:
+Use the techniques and tools discussed earlier to crack the provided hashes:
+##### (1)
+```
+48bb6e862e54f2a795ffc4e541caed4d
+```
+
+##### (2)
+```
+0458ce29e1b0edb36665db68dc96f976dbce98a54696376d7297fce33e56de171d2d7f1ceaa9cbc74dd948c6d13a80dc0d2239ab5abe5f74e4506c9683f13fa7
+```
+
+##### (3)
+```
+11adeb3106116457ba233b1ef0989ff6b15f590cfe1ab0a7ce00401c429bd58c
+``` 
+> Hint: The password is made up of 5 characters with the first character being an uppercase alphabet, followed by two digits, then a lowercase alphabet, and finally a symbol.
+
+##### (4)
+```
+$6$sup3rstr0ngs4lt$fZt5XYt.hdLFCs7YOlSIXT.0cDaNIhtP5QdDRdYP6OD349oD8hR9mEYueBRxaSAEHtAJ85wYYNyEELJkb0QSW1
+```
+> Hint: Google "salt" in the context of hashing.
+
+##### (5)
+```
+7484c9a3d50e649f50411c58317eb7c6c6e506a94b04ebb87dd8715ce16de0d8e41a4894f9be4bbc7dbc204e1f7103e7b75844f78ce288f89befdfb53f9f5ac8
+```
+> Hint: The password belongs to someone who has a dog named Scooby and likes to use underscores to separate words. Additionally, the password starts with a capital letter, and the rest of the characters are lowercase. It may be helpful to consult the `rockyou.txt` wordlist and apply some rules using either John or Hashcat.
+
+#### b) Phân tích cách làm:
+##### (1)
+- Identify the type of hash value:
+![image](https://hackmd.io/_uploads/ryqjSnW1fl.png)
+It's MD5.
+- Trying brute-force attack by using command `hashcat -m 0 -a 3 48bb6e862e54f2a795ffc4e541caed4d`:
+![image](https://hackmd.io/_uploads/HyiQD2byfx.png)
+The password is `easy`.
+
+##### (2)
+- Identify the type of hash value:
+![image](https://hackmd.io/_uploads/HyeOPnZ1ze.png)
+It's SHA-512.
+- Trying brute-force attack by using command `hashcat -m 1700 -a 3 <hash_value>`, we can't find the answer.
+- Trying dictionary attack:
+![image](https://hackmd.io/_uploads/ByEnKhZJGl.png)
+The password is `michael1997`.
+
+##### (3)
+- Identify the type of hash value:
+![image](https://hackmd.io/_uploads/BkX_9hb1fe.png)
+It's SHA-256.
+- Trying mask attack by using command `hashcat -m 1400 -a 3 <hash_value> ?u?d?d?l?s`:
+![image](https://hackmd.io/_uploads/Bkq-s3-Jzg.png)
+The password is `N00b_`.
+
+##### (4)
+> Refer to: [Understanding `/etc/shadow` file format on Linux](https://www.cyberciti.biz/faq/understanding-etcshadow-file/)
+- As we can see, our format is `$id$salt$hashed`:
+    - `id` = `6`: SHA-512
+    - `salt` = `sup3rstr0ngs4lt`
+    - `hashed` = `fZt5XYt.hdLFCs7YOlSIXT.0cDaNIhtP5QdDRdYP6OD349oD8hR9mEYueBRxaSAEHtAJ85wYYNyEELJkb0QSW1`
+- Trying brute-force attack by using command `hashcat -m 1800 -a 3 <$id$salt$hashed`, but I cannot find the answer.
+- Trying dictionary attack:
+![image](https://hackmd.io/_uploads/HJSJx6-kzx.png)
+The password is `batman1234`.
+
+##### (5)
+- Identify the type of hash value:
+![image](https://hackmd.io/_uploads/rJzUeabkMg.png)
+It's SHA-512.
+- Trying mask attack by using command `hashcat -m 1700 -a 3 <hash_value> -j 'c' -k '_scooby'`, but we cannot find the ansswer:
+- Trying dictionary attack:
+![image](https://hackmd.io/_uploads/H1HC76-kfl.png)
+The password is `Michael1997_scooby`.
+
 ## B. MemLabs:
 > Link: https://github.com/stuxnet999/MemLabs
 
