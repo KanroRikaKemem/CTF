@@ -3389,7 +3389,7 @@ The answer: `findstr -I "avastui avgui bdservicehost nswscsvc sophoshealth"`
 > - `avgui`: AVG Antivirus UI
 > - `bdservicehost`: Bitdefender Service Process
 > - `nswscsvc`: Norton Security/Norton WSC Service
-> - sophoshealth`: Sophos Health Service
+> - `sophoshealth`: Sophos Health Service
 
 #### 16. What is the full command used to set up persistence on the system
 At the event in Task 14. The answer:
