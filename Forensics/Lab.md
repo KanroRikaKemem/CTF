@@ -3396,3 +3396,4 @@ At the event in Task 14. The answer:
 ```
 cmd /k echo [InternetShortcut] > "C:\Users\user\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Virtuoso.url" & echo URL="C:\Users\user\AppData\Local\Immersive Creations Co\Virtuoso.js" >> "C:\Users\user\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Virtuoso.url" & exit
 ```
+> The above command creates a shortcut (`.url`) in folder `Startup`, access directly to a script file (`.js`). When the system start, this `.js` file will automatically execute.
