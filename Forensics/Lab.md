@@ -3564,3 +3564,172 @@ The base64 code above is `YjNuM2YxNzVfeTB1Xw==`, decode it and we have the final
 
 #### c) Kết quả
 `bi0sctf{w3lc0m3_t0_df1r_l4b5_h0p3_th15_b3n3f175_y0u_m0r3_13337431}`
+
+### 2. Trinity Of Secrets:
+#### a) Đề bài:
+- Link lab: https://github.com/Azr43lKn1ght/DFIR-LABS/tree/main/Trinity%20Of%20Secrets
+- Đề bài:
+![image](https://hackmd.io/_uploads/SkbzQJ64zl.png)
+- Handout: https://drive.google.com/drive/folders/1-1Sx4lV_Fx_QQG2XWGqxEBisShZD7H5v
+
+#### b) Phân tích cách làm:
+- By using Volatility 3, check the plugin `windows.pslist`:
+![image](https://hackmd.io/_uploads/Sy7iYZTNGx.png)
+Suspicious processes are `Discord.exe`, `Code.exe`, `lsass.exe`, `explorer.exe`, `OneDrive.exe`, `SkyApp.exe`.
+- When I check the plugin `windows.cmdline`, I think maybe `RuntimeBroker.exe` is also suspicious.
+![image](https://hackmd.io/_uploads/ByDda91HGg.png)
+And `NisSrv.exe` (a part of Microsoft's antivirus software) is running.
+- Check for plugin `windows.netscan`, everything is normal, and `Discord.exe` is running:
+![image](https://hackmd.io/_uploads/ByNzboyBGg.png)
+- In the description, there has `the secrets lying in your code`, so I will try analysing vscode. When I checked for plugin `pslist`, I saw that the parent process of `Code.exe` is `explorer.exe`, this is so suspicious:
+![image](https://hackmd.io/_uploads/rkLIN7Irzg.png)
+I searched on Google that how VSCode have reverse shell, and there was some news about malicious extension:
+![image](https://hackmd.io/_uploads/r1KWIXLrzx.png)
+Then I search how to find the file containing extension folder of VSCode, and the loaction is in `Windows %USERPROFILE%\.vscode\extensions`:
+![image](https://hackmd.io/_uploads/Sk5vIQLSzl.png)
+In [Your First Extension](https://code.visualstudio.com/api/get-started/your-first-extension), I found that we can use TypeScript (`.ts`) or JavaScript (`.js`) to write extensions:
+![image](https://hackmd.io/_uploads/HyVKO78rfg.png)
+Using plugin `filescan` then filter some strings, I will get an extension of VSCode:
+![image](https://hackmd.io/_uploads/BycWq7IHzg.png)
+Dump this file and read the data:
+![image](https://hackmd.io/_uploads/B1wLqmISfx.png)
+![image](https://hackmd.io/_uploads/ByDLPV8Bze.png)
+The content is `[]`. I checked the size of this file and its binary, so I think this is not the correct way. I will try another way.
+![image](https://hackmd.io/_uploads/BJra_E8HGe.png)
+Dump all of the above files and read its content:
+![image](https://hackmd.io/_uploads/rk9JcELrGl.png)
+![image](https://hackmd.io/_uploads/rkqx9NLBMx.png)
+There is nothing important .-. Try another way, I will find the cache of VSCode, the location is in `AppData\Roaming\Code`:
+![image](https://hackmd.io/_uploads/SJQOnELSGx.png)
+![image](https://hackmd.io/_uploads/HJLc24Lrzg.png)
+There has a lot of files. First, I will dump `storage.json` because it contains `recentlyOpened` - a list of the nearest file/folder/workspace. Read its content:
+![image](https://hackmd.io/_uploads/SkRHR4LSGe.png)
+![image](https://hackmd.io/_uploads/BkykC4LHfl.png)
+As we can see, the user was open an empty file and the location is in `C:\\Users\\User\\AppData\\Roaming\\Code\\Backups\\1716390920783`.
+Dump this file and read its content:
+![image](https://hackmd.io/_uploads/BJl00NUrfg.png)
+There has a code and a poetry, maybe the poetry is a clue.
+``` code
+untitled:Untitled-1 {"typeId":""}
+untitled:Untitled-2 {"typeId":""}
+Function Decrypt(message, password)
+    Dim key
+    Dim i
+    Dim encrypted_message
+    Dim char
+
+    key = Hash(password)
+
+    For i = 1 To 10
+        encrypted_message = ""
+        For j = 1 To Len(message)
+            char = Mid(message, j, 1)
+            encrypted_message = encrypted_message & Chr(Asc(char) Xor Asc(Mid(key, (i - 1) Mod Len(key) + 1, 1)))
+        Next
+        message = encrypted_message
+    Next
+
+    Encrypt = encrypted_message
+End Function
+
+Function Hash(text)
+    Dim sha256
+    Dim bytes
+    Dim i
+
+    Set sha256 = CreateObject("System.Security.Cryptography.SHA256Managed")
+    bytes = sha256.ComputeHash_2((StrConv(text, vbFromUnicode)))
+
+    Hash = ""
+    For i = 1 To LenB(bytes)
+        Hash = Hash & Right("0" & Hex(AscB(MidB(bytes, i, 1))), 2)
+    Next
+End Function
+
+Dim password, ciphertext, decrypted
+password = " "
+ciphertext = " "
+decrypted = Decrypt(ciphertext, password)
+WScript.Echo "Decrypted:", decrypted
+
+
+"""
+Deep within the gamer's lore
+Is a secret waiting to be unlocked
+
+Find the file that holds the cached key
+Maybe what you are looking for is data_3
+It might hold the images that you seek
+
+Conversations notified but left unseen.
+And within the quiet pings, where alerts softly chime,
+Another piece awaits, revealing the r1ddl3r's crime.
+""" 
+```
+The `password` and `ciphertext` is empty, the poetry say that the cached key is in `data_3` so we will find and dump this file.
+![image](https://hackmd.io/_uploads/SkdWxHUBMl.png)
+The poetry said that `the images that you seek`, I will dump `data_3` of Discord because Discord can save cache of image. Besides that, `Conversations notified but left unseen` maybe refers to `Windows Notification database`, its location is `C:\Users\User\AppData\Local\Microsoft\Windows\Notifications\wpndatabase.db` (this file save the nofication of apps).
+Dump these `data_3`:
+![image](https://hackmd.io/_uploads/BJC6bBISfg.png)
+I don't see anything, so I will try to dump `wpndatabase.db`, then rename and use `sqlite3` to analyse it:
+![image](https://hackmd.io/_uploads/rkXAWFDrzx.png)
+Display the structure of `Notification` and `NotificationData` to find the column containing payload:
+![image](https://hackmd.io/_uploads/rJIIMKPSGx.png)
+As we can see, the payload is in column `[Payload] BLOB` of table `Notification` and it links `NotificationHandler`. Display the handler list to find ID of Discord:
+![image](https://hackmd.io/_uploads/BJp8XKvSGx.png)
+![image](https://hackmd.io/_uploads/ByWeNYvBMl.png)
+Extract the payload:
+![image](https://hackmd.io/_uploads/Sylu4Fvrfx.png)
+There have a location of an image, it is `C:\Users\User\AppData\Local\Temp\scoped_dir7336_1005206194\0cf7ef46d8cca4a9ddffebd58a0877e2.png`, and a base64 code:
+![image](https://hackmd.io/_uploads/S1jaNtvBfe.png)
+Then, we will find the offset of this image by using `filescan`:
+![image](https://hackmd.io/_uploads/BJc8DtPSMe.png)
+There is nothing, maybe this image was deleted, so we will try using plugin `mftscan` to find the image:
+![image](https://hackmd.io/_uploads/Bkfj_FvSfg.png)
+Because using plugin `mftscan` shows only attribute `FILE_NAME`, so to display `$DATA`, we will try using plugin `windows.mftscan.ResidentData`:
+![image](https://hackmd.io/_uploads/S16cFtDrzl.png)
+We can see the value being displayed is `-`, it means that its data is not resident. We will try running script to carve around five offset that we knew:
+![image](https://hackmd.io/_uploads/r1xmW0dHze.png)
+The result is so good, extract the image:
+![image](https://hackmd.io/_uploads/B1Di-CdHGg.png)
+![extracted](https://hackmd.io/_uploads/HJWaZAurfx.png)
+The above image is our `extracted.png`. Perhaps this is not the correct way.
+I got some hints to dump the file `data_3` having offset `0xcb0f5f438510` by `--physaddr`. Firstly, to do this, we have to use plugin `windows.vadinfo` to get the physical address of this file:
+![image](https://hackmd.io/_uploads/r16hBJqrfg.png)
+This way is not effective, so we will try using `binwalk` for the dumped file to check if there has some hidden files.
+![image](https://hackmd.io/_uploads/HyEJel9BMe.png)
+When I run the command `binwalk file.0xcb0f5f438510.0xcb0f5e87f2d0.DataSectionObject.data_3.dat`, I saw this:
+![image](https://hackmd.io/_uploads/H14_gxqSzl.png)
+There has a file `.png`. Extract this image:
+![image](https://hackmd.io/_uploads/ryVo-lcBfg.png)
+The result is:
+![real_image](https://hackmd.io/_uploads/rJD6Wl9rfg.png)
+This is Semaphore flag signaling, using https://www.dcode.fr/semaphore-flag to decode it. There are to way to break the code:
+- Using the view from front, our key is `JCNNQ
+OWR?Z`:
+![image](https://hackmd.io/_uploads/BJBDSxcSfx.png)
+- Using the view from back, our key is `PENNY
+WORTH`:
+![image](https://hackmd.io/_uploads/rJb6rx9SMx.png)
+I think that the back view makes more sense because this is the name of Bruce Wayne/Batman's butler - Alfred Pennyworth.
+
+- We have found this `ciphertext = ":0=;'\x11h/(o.\x0bh%2o\x03\x0b43\x15/\x0849\x08.)o\x11h/(o.1m28\x03\x0em880o\x11o\x084h(!"`, from the code that I dumped from `C:\\Users\\User\\AppData\\Roaming\\Code\\Backups\\1716390920783`, we have this following code to find our flag:
+``` py
+import hashlib
+
+def decrypt_data(ciphertext, password):
+    key = hashlib.sha256(password.encode('ascii')).hexdigest()
+    message_codes = [ord(c) for c in ciphertext]
+    for i in range(1, 11):
+        key_char = ord(key[(i - 1) % len(key)])
+        message_codes = [char_code ^ key_char for char_code in message_codes]
+    return "".join(chr(c) for c in message_codes)
+
+password = "PENNYWORTH"
+ciphertext = ":0=;'\x11h/(o.\x0bh%2o\x03\x0b43\x15/\x0849\x08.)o\x11h/(o.1m28\x03\x0em880o\x11o\x084h(!"
+decrypted_text = decrypt_data(ciphertext, password)
+print(decrypted_text)
+```
+
+#### c) Kết quả:
+`flag{M4st3rW4yn3_WhoIsTheTru3M4st3rm1nd_R1ddl3M3Th4t}`
