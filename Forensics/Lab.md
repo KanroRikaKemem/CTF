@@ -3573,6 +3573,63 @@ In function `process_cmd`, I saw that:
 If the string is `sdestruct`, function `cmd_selfdestruct` will be triggered.
 Answer: `sdestruct`
 
+### VIII. Baggage:
+> Link lab: https://app.hackthebox.com/sherlocks/Baggage?tab=play_sherlock
+> Đề bài:
+> ![image](https://hackmd.io/_uploads/HJ_-bGJDze.png)
+
+#### 1. What was the name of the archive file downloaded by the compromised account?
+In the description of challenge, we know that we will analyze Shellbag artifacts. I will use ShellBags Explorer by Eric Zimmermans to investigate this challenge. Loading `Baggage\C\Users\steve\AppData\Local\Microsoft\Windows\UsrClass.dat` in this tool:
+![image](https://hackmd.io/_uploads/Bk4KdH1DGg.png)
+There has a archive file in `Desktop\My Computer\Downloads\1.zip`
+**Answer:** `1.zip`
+
+#### 2. What was the name of the utility brought in by the attacker to search for sensitive data?
+If we extract `1.zip`, we will get this file:
+![image](https://hackmd.io/_uploads/HyoctB1vGe.png)
+**Answer:** `Everything 1.4.1.1028`
+
+#### 3. The attacker navigated the filesystem and found sensitive files used by the victim in their day-to-day work. When was the VPN folder accessed by the attacker?
+In `Documents`, I saw a file named `OT Station 3 internal VPN`:
+![image](https://hackmd.io/_uploads/rJdR5rkvzl.png)
+**Answer:** `2025-09-03 07:31:05`
+
+#### 4. What was the name of the directory containing the victim's passwords?
+In `Documents` too, I saw this file:
+![image](https://hackmd.io/_uploads/HJuQirkvGe.png)
+**Answer:** `OnePassword MasterPass`
+
+#### 5. The attacker also accessed a network share to pillage network data. What is the UNC path?
+A UNC path is the path to a folder or file on a network and contains the server name in the path. I saw this:
+![image](https://hackmd.io/_uploads/ryehTH1wMe.png)
+The Shell Type is Network location.
+**Answer:** `\\Prod-ns-2\prodshare`
+
+#### 6. When is the dam construction planned?
+In `\\Prod-ns-2\prodshare`, there has a folder name `Construction 2027`:
+![image](https://hackmd.io/_uploads/ByRf0H1wfe.png)
+**Answer:** `2027`
+
+#### 7. What was the name of the archive file present on the network share?
+I saw this archive file:
+![image](https://hackmd.io/_uploads/SJvuRSyPzl.png)
+**Answer:** `Dam Construction Engineer Plans.zip`
+
+#### 8. When was the archive file from the network share accessed?
+Load the hive `Baggage\C\Users\steve\NTUSER.DAT`:
+![image](https://hackmd.io/_uploads/rk1TxUywGx.png)
+**Answer:** `2025-09-03 07:34:04`
+
+#### 9. The attacker created a staging folder to prepare for collection and exfiltration. What is the full path of the staging folder?
+Attacker find the sensitive data at `Documents`, then create a staging folder to prepare for collection and exfiltration. It's so weird that there is an archive directory in `Pictures`:
+![image](https://hackmd.io/_uploads/r1q9LLywGl.png)
+Answer: `C:\users\Steve\Pictures\a`
+
+#### 10. The attacker compressed the staging folder to prepare the data for exfiltration. When was the exfiltration archive file accessed?
+Acording to the above answer:
+![image](https://hackmd.io/_uploads/H17R88kvGx.png)
+Answer: `2025-09-03 07:34:30`
+
 ## DFIR-LAB:
 > Link lab: https://github.com/Azr43lKn1ght/DFIR-LABS
 
