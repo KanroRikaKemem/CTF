@@ -40,6 +40,7 @@
 
 ## II. Bảy bước của một Cyber Kill Chain:
 ![image](https://hackmd.io/_uploads/rJUFZ8ZDzg.png)
+
 Mô hình Cyber Kill Chain ban đầu của Lockheed Martin mô tả bảy bước. Đây là khuôn mẫu được đề cập tới phổ biến nhất trong ngành công nghiệp. Nó đưa ra  phương pháp và động cơ của tội phạm mạng trong suốt toàn bộ attack timeline, giúp cho các tổ chức hiểu được và đối phó với những mối đe doạ. Bảy giai đoạn đó là:
 
 ### Giai đoạn 1 - Trinh sát:
@@ -102,6 +103,7 @@ Việc ngăn chặn các cuộc tấn công mạng yêu cầu một phương ph�
 
 ### 2. Không phát hiện mối đe doạ nội bộ:
 ![image](https://hackmd.io/_uploads/S1V7XeGwzg.png)
+
 Mô hình Cyber Kill Chain truyền thống không lý giải cho các mối đe doạ nội bộ, điều mà tiềm ẩn mối đe doạ đáng kể đối với các tổ chức. Những mối đe doạ nội có thể bao gồm các nhân viên hay nhà thầu với quyền truy cập hợp lệ nhưng lại dụng các quyền của mình. Việc tìm kiếm hiệu quả yêu cầu sự giám sát hành vi và hoạt động người dùng và trong mạng và apps, thường thông qua các hệ thống tự động thiết lập cảnh báo cho những hoạt động đáng ngờ.
 
 ### 3. Thiếu sự linh hoạt:
