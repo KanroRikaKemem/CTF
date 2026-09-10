@@ -4267,6 +4267,86 @@ In the `.bash_history` at the above question:
 
 **Answer:** `/var/lib/mongodb`
 
+### XII. Midnight Crash:
+> - Link lab: https://app.hackthebox.com/sherlocks/Midnight%2520Crash?tab=play_sherlock
+> - Đề bài:
+A production server crashed unexpectedly and rebooted. The crash happened at a strange time, and we doubt it was a simple hardware fault. A kernel crash dump was captured. Your mission is to analyze it to find the real cause of the crash and determine if any other suspicious activity was present on the system.
+
+#### 1. What is the hostname of the crashed server?
+Using `crash` to analyse this lab, then cheking the plugin `sys` to show details of taint flags:
+![image](https://hackmd.io/_uploads/SJsQsHetfe.png)
+![image](https://hackmd.io/_uploads/Hy7boBgKMl.png)
+![image](https://hackmd.io/_uploads/r1V1FSgKfe.png)
+We can see that the process having PID `9236` triggered t
+**Answer:** `ubuntu-2204`
+
+#### 2. What is the assigned IP address of the server at time of crash?
+Check for plugin `net`:
+![image](https://hackmd.io/_uploads/HyPmtBltfl.png)
+
+**Answer:** `192.168.1.135`
+
+#### 3. When did the server crash? (UTC)
+In the first question, we know that:
+![image](https://hackmd.io/_uploads/H1ls6trxFzl.png)
+
+**Answer:** `2025-11-04 02:03:29`
+
+#### 4. The crash was triggered by a specific process. What was the PID of the active process that caused the panic?
+In the first question, we have known the PID of the process. By check for plugin `bt` to show the backtrace of the process, we also see the PID and the command that was running when the crash happend.
+![image](https://hackmd.io/_uploads/SyBkpSeFfe.png)
+
+**Answer:** `9236`
+
+#### 5. Which command-line utility was leveraged by the previous process to trigger the crash?
+According to the previous question:
+![image](https://hackmd.io/_uploads/SyBkpSeFfe.png)
+**Answer:** `cat`
+
+#### 6. What was the kernel's fatal panic bug message?
+When we first run the tool `crash`:
+![image](https://hackmd.io/_uploads/r1y1CBlKfe.png)
+But it just a brief of the message. Using plugin `log`:
+![image](https://hackmd.io/_uploads/BkKolIeYzl.png)
+In the last section of this plugin, we see the string above, and the bug message: `BUG: kernel NULL pointer dereference, address: 0000000000000000`.
+
+**Answer:** `kernel NULL pointer dereference, address: 0000000000000000`
+
+#### 7. What is the absolute path of the malicious file that caused the kernel crash?
+Check for `files 9236`:
+![image](https://hackmd.io/_uploads/ryXgGLgKGg.png)
+`TYPE` = `REG` means "regular file", while `CHR` means "character device". In the `Call Trace`:
+![image](https://hackmd.io/_uploads/rkuRNUlYGg.png)
+The flow is `proc_reg_read` $\rightarrow$ `vfs_read` $\rightarrow$ `ksys_read`, and `proc_reg_read` is the read function intended only for files in `/proc`, called when `read()` is performed on a REG file belonging to procfs.
+
+**Answer:** `/proc/jiffies_ext`
+
+#### 8. What is the name of the function at the top of the kernel's call stack at time of the crash?
+We see this line:
+![image](https://hackmd.io/_uploads/HkbdIUeYze.png)
+This function at the top of the call stack belongs to `core_helper` module, and be crashed at offset `+0x8`, because it cannot read the opcode at that offset.
+
+**Answer:** `core_helper_read`
+
+#### 9. This function belongs to a malicious kernel module. What is the base memory address of this module?
+To get the base address của `core_helper` module, use plugin `mod`:
+![image](https://hackmd.io/_uploads/ByOgO8lYfg.png)
+**Answer:** `ffffffffc0a94000`
+
+#### 10. What is the function name in the malicious kernel module that performs cleanup?
+Using plugin `sym` for `core_helper`:
+![image](https://hackmd.io/_uploads/H1LSTIxYMl.png)
+**Answer:** `cleanup_module`
+
+#### 11. Before the kernel panic, a suspicious process was running with sudo privileges, what was the process name?
+Check the plugin `ps` of the process having PID `9236`:
+![image](https://hackmd.io/_uploads/H10LAUeFGg.png)
+But there is not any function is the correct answer. Check `ps` for the whole process and check all the processes related to `sudo`, at near the end:
+![image](https://hackmd.io/_uploads/r1cYBveKMe.png)
+As we can see, `sudo` is the parent process of `httpd-worker`.
+
+**Answer:** `httpd-worker`
+
 ## DFIR-LAB:
 > Link lab: https://github.com/Azr43lKn1ght/DFIR-LABS
 
