@@ -4782,3 +4782,28 @@ We actually found `Cocainit`, `VNvodich`, and `Siuuuuuu`.
 - **The first encryption class - Asymmetric Cryptography:** Using public key GPG to encrypt sensitive document (`RestrictedAccess.pdf`) to `T3C4U`, then definitely deleting the orginal file (`rm -rf`) to prevent file recovering (but he forgot to delete `.zsh_history` and `ConsoleHost_history.txt`).
 - **The second encryption class - Symmetric Cryptography:** Attacker used PowerShell to encrypt `T3C4U` by through AES. This script was entirely executed on memory (fileless execution) through Base64 and Deflate (lossless compression) to evade anti-virus softwares.
 - **Defense Evasion**: The last encrypted file was renamed `recycle.bin` to be disguised as recycle bin of system.
+
+## Viblo CTF:
+### I. NetLab1: Sharing:
+> Link bài lab: https://ctf.viblo.asia/puzzles/netlab1-sharing-7ftcbkfnovy
+> - *A protocol that looks a bit strange. Do you know how to deal with it?*
+- Using Wireshark to analyse the `.pcap` file:
+![Screenshot 2026-09-12 210225](https://hackmd.io/_uploads/HkHROJ7Fzx.png)
+![Screenshot 2026-09-12 210747](https://hackmd.io/_uploads/SyUgKkQtzg.png)
+- Show the TCP Stream of the second packet:
+![image](https://hackmd.io/_uploads/B1SrY17Yze.png)
+![image](https://hackmd.io/_uploads/BkKyn17tGl.png)
+There are some readable keywords whose data is names of files.
+- Because SMB2 is the protocol allow transfering files, so we can export SMB files:
+![image](https://hackmd.io/_uploads/Sk30FkmYGe.png)
+Export `password.txt` and `netlab1.7z`. The content of `password.txt`:
+![image](https://hackmd.io/_uploads/Hkwmsy7tze.png)
+To extract `netlab1.7z`, we need a password, it is `SMBprotocol`. Then we get `netlab.db`:
+![image](https://hackmd.io/_uploads/Hkw6jkmKMe.png)
+- Using DB Browser for SQLite to analyse `netlab.db`:
+![image](https://hackmd.io/_uploads/ryF92k7tMx.png)
+We see this table:
+![image](https://hackmd.io/_uploads/Sys6ul7Kzx.png)
+Make a query to read the data of this table:
+![image](https://hackmd.io/_uploads/rJtVKgQFfl.png)
+The flag is `Flag{NetLab1_N0w_y0u_kn0w_SMB??}`
