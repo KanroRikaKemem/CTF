@@ -1,5 +1,6 @@
+> Link HTB #2.1: https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/rkRi7jwWGl
+
 ### XII. Kraken:
-> - Link ver1: https://hackmd.io/@bMGaKJbHSWqauGaKAUyYhA/rkRi7jwWGl
 > - Link lab: https://app.hackthebox.com/sherlocks/Kraken?tab=play_sherlock
 > - Đề bài:
 ![image](https://hackmd.io/_uploads/SJvZTlmKzg.png)
