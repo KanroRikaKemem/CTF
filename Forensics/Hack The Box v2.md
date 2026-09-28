@@ -596,7 +596,7 @@ private static readonly string[] Parenting = new string[3] { "Mozilla/5.0 (Windo
 ```
 **Answer:** `Mozilla/5.0 (iPhone; CPU iPhone OS 11_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.0 Mobile/15E148 Safari/604.1`
 
-#### 10. What variable stores the mutex object created by this binary?
+#### 10. Once the attacker gained root access on the system, they began preparing for data exfiltration. Data was staged and compressed before being exfiltrated outside the network. What is the full path of the archive file?
 Using `Ctrl` + `F` to find the keyword `mutex`, in class `Concentrate`:
 ![image](https://hackmd.io/_uploads/rJe0WYFYGg.png)
 And in class `Louisiana`:
@@ -636,3 +636,160 @@ We all know that the dropped file is in `Startup` folder. Go to this folder:
 ![image](https://hackmd.io/_uploads/B1U8M9FFfx.png)
 
 **Answer:** `C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\5c74.bat`
+
+### XIII. ReachKart:
+> - Link lab: https://app.hackthebox.com/sherlocks/ReachKart?tab=play_sherlock
+> - Đề bài:
+> ![image](https://hackmd.io/_uploads/BJVy-hIqzl.png)
+
+#### 1. What was the vulnerable endpoint that allowed the attacker to leak files?
+In `access.log`, I saw a sign of Path Traversal:
+![image](https://hackmd.io/_uploads/SypIG28cMl.png)
+It came from `/user/getOrderBill` endpoint.
+
+**Answer:** `/user/getOrderBill`
+
+#### 2. When was the first successful exploitation of the vulnerable endpoint by the attacker (time in UTC)?
+I saw that server reply a respond whose code is `200 OK`:
+![image](https://hackmd.io/_uploads/SJfHwnLqMl.png)
+
+**Answer:** `2025-03-01 04:09:22`
+
+#### 3. Which version of Express is currently being used on the server?
+In `.pcap`, filter packets whose protocol is HTTP. There has a packet that attacker successfully exploit to `package.json`:
+![image](https://hackmd.io/_uploads/SJ-HF2I5Mx.png)
+Check its HTTP Stream:
+![image](https://hackmd.io/_uploads/ryGvK385ze.png)
+
+**Answer:** `4.21.2`
+
+#### 4. Which Ethereum compatible development smart contract network is running on the server? (Format: name@version)
+In `package.json`:
+![image](https://hackmd.io/_uploads/SyLKlgO5fg.png)
+
+**Answer:** `hardhat@2.22.18`
+
+#### 5. What is the signing key used by the server to sign JSON Web Tokens (JWT)?
+- Check for the following packet:
+![image](https://hackmd.io/_uploads/rkFDfl_qMx.png)
+I saw this line:
+![image](https://hackmd.io/_uploads/ryG2Mxu9fx.png)
+The key was read from `reachkart.key`. But when finding this file to export, I saw nothing:
+![image](https://hackmd.io/_uploads/SkIvQld9Gg.png)
+![image](https://hackmd.io/_uploads/BJyW7xuqze.png)
+- Try to check HTTP Stream of the next packet:
+![image](https://hackmd.io/_uploads/H17nQxucGx.png)
+I saw this:
+![image](https://hackmd.io/_uploads/BJA0Xgu9fg.png)
+This line means that if there has a `SECRET_KEY` set on the system, use it. If not, use `SuperSecretPassword`.
+
+**Answer:** `SuperSecretPassword`
+
+
+#### 6. The attacker was able to generate a JWT from the signing key and log in to the admin panel. What is the JWT value?
+Because attacker logged into the admin panel, check for HTTP Stream of this packet:
+![image](https://hackmd.io/_uploads/rJ4JUxdcGg.png)
+I saw this token:
+![image](https://hackmd.io/_uploads/HJxLUxd5Gg.png)
+Attacker successfully logged into `/admin/home`.
+
+**Answer:**
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGFydGggVmFkZXIiLCJlbWFpbCI6ImRhcnRodmFkZXJAZW1waXJlLmNvbSIsImFjY291bnRfdHlwZSI6ImFkbWluIiwiaWF0IjoxNzQwODAyNzM0LCJleHAiOjE3NDA4ODkxMzR9.RBmMEC7IYmkzz1LsT-kP_JkLCUb7-hsJKX4IdjE91TE
+```
+
+#### 7. Decode the token and find the email used by the attacker to log in to the admin panel.
+Go back to this packet and check for its HTTP Stream:
+![image](https://hackmd.io/_uploads/r1tCYe_cMe.png)
+There has a function used to generate a JWT Token:
+![image](https://hackmd.io/_uploads/BkqWixd9zl.png)
+Export `reachkart.db` and check for this database:
+![image](https://hackmd.io/_uploads/SJnLTxdqMg.png)
+![image](https://hackmd.io/_uploads/HkpOTeO9fl.png)
+Check the `user` table:
+![image](https://hackmd.io/_uploads/S1Yp6gdcfl.png)
+I don't know how to get the email from a token, but I found this link: https://jwt.io. So, copy the above token past to this URL:
+![image](https://hackmd.io/_uploads/SkY90x_qMx.png)
+And I get the attacker's email.
+
+**Answer:** `darthvader@empire.com`
+
+#### 8. The admin panel uses WebSocket to send and receive terminal input. What port is being used?
+We know that attacker successfully logged to Admin Panel:
+![image](https://hackmd.io/_uploads/SJiGWW_5Mx.png)
+Check for the HTTP Stream of the packet no. 1288:
+![image](https://hackmd.io/_uploads/S1oIWWuqfg.png)
+
+**Answer:** `8888`
+
+#### 9. The attacker then was able to retrieve a sensitive file. When did the attacker get the file (UTC)?
+Check for the flow of HTTP packets:
+![image](https://hackmd.io/_uploads/rJj7GW_qGx.png)
+After send and receive terminal input, attacker tried getting some files in `/log`, but failed. Then, attacker successfully get a database file, it is `reachkart.db` that I exported before.
+
+**Answer:** `2025-03-01 04:22:01`
+
+#### 10. What is the SHA-256 hash of the file that the attacker downloaded?
+Check for its SHA-256 hash in PowerShell:
+![image](https://hackmd.io/_uploads/BJgrmZucfx.png)
+
+**Answer:** `fabe3234bb709ee5e5c5c2789c891a9a49368ffa520b23d60f6be2f2ca81bac6`
+
+#### 11. How many sellers are there in the e-commerce website?
+I will do a query to find the number of sellers in `users` table:
+![image](https://hackmd.io/_uploads/B1y-E-O5fl.png)
+![image](https://hackmd.io/_uploads/BJR7EZOcGg.png)
+There are eight sellers.
+
+**Answer:** `8`
+
+#### 12. The attacker started sending Ether from all identified sellers' wallets. What is the hash of the first transaction?
+Filter packets that contains the information of attacker's sending behaviour:
+![image](https://hackmd.io/_uploads/HJ1ZPWuqze.png)
+Check for the first packet whose timestamp is after `04:09:22`:
+![image](https://hackmd.io/_uploads/ryl5KZOcGe.png)
+We know that this is the first transaction because of the `0x0` nonce, and its value is `0x1bc16d674ec80000`. It was a successful transaction because of the status `0x1`:
+![image](https://hackmd.io/_uploads/BkgZo-OqMl.png)
+Scroll down, check for the result of method `method":"eth_sendRawTransaction`, whose `id` is `12`:
+![image](https://hackmd.io/_uploads/rJ9ZcbdcMl.png)
+Its hash is `0x7b7ded2d51f0dcb1bf3fc5cc9598b81a7a622aac15d3841d377c548986e0a7c3`.
+
+**Answer:** `0x7b7ded2d51f0dcb1bf3fc5cc9598b81a7a622aac15d3841d377c548986e0a7c3`
+
+#### 13. What was the total amount of Ether stolen by the attacker? (1 Eth = 10^18 wei
+Similarly, check for the next packets to find the value of successful transactions that have the same recepient (`0x82b03246a287e5ed681b967cbd9b610a24bd5ef9`):
+![image](https://hackmd.io/_uploads/HJaMh-O9Gl.png)
+![image](https://hackmd.io/_uploads/SkT92b_5zl.png)
+![image](https://hackmd.io/_uploads/SyoA3ZucGe.png)
+![image](https://hackmd.io/_uploads/BylOpbO5Gl.png)
+![image](https://hackmd.io/_uploads/S1Hnabdqzx.png)
+![image](https://hackmd.io/_uploads/S1nlCWd9fx.png)
+![image](https://hackmd.io/_uploads/rybt0ZOqMe.png)
+Then run the below code:
+``` py
+print(sum(int(x,16) for x in ['1bc16d674ec80000','29a2241af62c0000','3782dace9d900000', '29a2241af62c0000', '2c68af0bb1400000', '1e87f85809dc0000', '3e73362871420000', '22b1c8c1227a0000'])/10**18)
+```
+**Answer:** `24.4`
+
+#### 14. What is the block number of the last transaction in which Ether was stolen? (Decimal)
+In the last transaction, check for the response of `eth_getTransactionByHash` method:
+![image](https://hackmd.io/_uploads/r198xzd5Mg.png)
+The block number is `0x12`. Run the code below to transfer from hex to dec:
+``` py
+print(int('0x12',16))
+```
+There are `18` block number.
+
+**Answer:** `18`
+
+#### 15. After the attacker stole the Ether, what was the balance in their wallet? (Ignore the trailing zeros)
+Filter packets that contains the information related to checking for the last balance of attacker:
+![image](https://hackmd.io/_uploads/H19gYMd5fl.png)
+Check for its HTTP Stream:
+![image](https://hackmd.io/_uploads/ryLwtfO9fx.png)
+Run the following code:
+``` py
+print(sum(int(x,16) for x in ['1529f07e833d46000'])/10**18)
+```
+
+**Answer:** `24.40023`
