@@ -744,8 +744,15 @@ There are eight sellers.
 **Answer:** `8`
 
 #### 12. The attacker started sending Ether from all identified sellers' wallets. What is the hash of the first transaction?
-Filter packets that contains the information of attacker's sending behaviour:
-![image](https://hackmd.io/_uploads/HJ1ZPWuqze.png)
+- In `rk-sever.js`, we can check the function related to behave transactions:
+![image](https://hackmd.io/_uploads/ryNjiqu9Mx.png)
+But I cannot find the method related to transaction-sending, we just have transaction getting.
+- Filter packets whose protocol is `POST` and timestamp is after `2025-03-01 04:22:01`:
+![image](https://hackmd.io/_uploads/ryBAksdcGg.png)
+When I checked for packet no. 1498, I saw this method:
+![image](https://hackmd.io/_uploads/Hk1MejO9Mx.png)
+- Filter packets that contains the information of attacker's sending behaviour by the method that we have just found:
+![image](https://hackmd.io/_uploads/SkK8eod5Ge.png)
 Check for the first packet whose timestamp is after `04:09:22`:
 ![image](https://hackmd.io/_uploads/ryl5KZOcGe.png)
 We know that this is the first transaction because of the `0x0` nonce, and its value is `0x1bc16d674ec80000`. It was a successful transaction because of the status `0x1`:
@@ -783,6 +790,10 @@ There are `18` block number.
 **Answer:** `18`
 
 #### 15. After the attacker stole the Ether, what was the balance in their wallet? (Ignore the trailing zeros)
+In `rk-sever.js`, we can check the function related to balance of the wallet:
+![image](https://hackmd.io/_uploads/rJ-P9cu5fl.png)
+![image](https://hackmd.io/_uploads/SkZI35u9Ge.png)
+![image](https://hackmd.io/_uploads/HJpVq9_qfl.png)
 Filter packets that contains the information related to checking for the last balance of attacker:
 ![image](https://hackmd.io/_uploads/H19gYMd5fl.png)
 Check for its HTTP Stream:
