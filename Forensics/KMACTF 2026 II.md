@@ -1,5 +1,5 @@
 ## The Good Friend:
-> - **Author:** duydt
+> - **Author:** `duydt`
 > - **Format flag:** `KMACTF{}`
 
 ### a) Đề bài:
@@ -320,3 +320,163 @@ Chạy script sau để request, mình sẽ lặp khoảng 150 lần:
     
 ### c) Kết quả
 `KMACTF{1_L1K3_H3R}`
+
+## Printeremembers:
+> - **Author:** `fr4nk`
+> - **Format flag:** `KMACTF{}`
+> - **Password File Rar:** `xkSLiemmSm3ltXCygNCgfIUV46YKH5mR`
+
+### a) Đề bài:
+Người cũ đã nghỉ việc mà không bàn giao pass. Tuy nhiên máy vẫn kết nối bình thường sau mỗi lần khởi động.
+Khôi phục thông tin đăng nhập đã được lưu trên máy.
+> **Hint:** Decrypt file pending job dựa vào devire key machine va user pattern.
+
+### b) Phân tích cách làm:
+- Dùng FTK Imager để phân tích challenge. Trong `/Users/printops/Desktop/handover.txt`:
+![image](https://hackmd.io/_uploads/BJCOREtqMg.png)
+Nghĩa là mình phải khôi phục thông tin đăng nhập **ĐÃ ĐƯỢC LƯU SẴN** trên máy để lấy lại nội dung tài liệu được in. Tài khoản được lưu trên máy là `printops`, máy in mạng tên là `\\PRINT-SRV01\HP-M404-PhongIn` và mốc thời gian là từ sau `03/2026`.
+- Ở file `map_printer.bat` thì:
+![image](https://hackmd.io/_uploads/B113CEY9fx.png)
+File `.bat` trên dùng để kết nối lại máy in mạng khi bị mất kết nối và cài lại máy in đó vào Windows của user.
+- Trong registry `SAM\Domains\Account\Users`, mình đã thấy sự xuất hiện của user `printops` với UID `1003`:
+![image](https://hackmd.io/_uploads/B1hWLSFcfx.png)
+Thời gian đăng nhập lần cuối và đổi password là `2026-09-07 09:19`, ngoài ra thì mình không tìm được thêm thông tin gì.
+- Thử kiểm tra các chương trình chạy nền trong `SYSTEM\ControlSet001\Services\bam\UserSettings\`:
+![image](https://hackmd.io/_uploads/SyPnDSFqGx.png)
+![image](https://hackmd.io/_uploads/r1WJuBtcfx.png)
+Ở đây mình chú ý đến PowerShell, nhưng chỉ nghi vấn thôi vì chưa có nhiều dữ kiện.
+- Mình có thấy nhắc đến `Winlogon.hiv` registry `SOFTWARE`:
+![image](https://hackmd.io/_uploads/Hkbm18Ycfe.png)
+![image](https://hackmd.io/_uploads/S1cSJ8Y5fe.png)
+Nói chung thì tiến trình này chạy ngầm trong máy tính để kiểm soát việc đăng nhập. Ta đã biết rằng máy tính vẫn kết nối bình thường sau mỗi lần khởi động mà không cần password, thử kiểm tra registry này:
+![image](https://hackmd.io/_uploads/S1dcg8Fcze.png)
+Ở đây mình thấy các trường như `AutoRestartShell`, `AutoAdminLogon` có data là `1`, và lần lượt `DefaultDomainName` cùng `DefaultUserName`:
+![image](https://hackmd.io/_uploads/S1i7WIF9fe.png)
+![image](https://hackmd.io/_uploads/rkxmZLY9fg.png)
+Tìm hiểu thêm về Winlogon thì mình search được [link](https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon) sau:
+![image](https://hackmd.io/_uploads/ry4bMLtcMg.png)
+Mình thấy rằng có thêm trường `DefaultPassword`, nhưng trong registry thì không thấy, và trong link cũng có nói về trường hợp khi trường này không tồn tại:
+![image](https://hackmd.io/_uploads/HJpjMUF5Ml.png)
+Nó bảo rằng password được lưu trong LSA thay vì plaintext trong registry, mình sẽ thử khai thác theo hướng này. Mình tìm được [link](https://www.ired.team/offensive-security/credential-access-and-credential-dumping/dumping-lsa-secrets) sau:
+![image](https://hackmd.io/_uploads/ByrTwIYczg.png)
+Thử xem trong `SECURITY\Policy\Secrets` có gì hot:
+![image](https://hackmd.io/_uploads/HJsidUY9Gx.png)
+Nhìn timestamp thì có vẻ cũng cũng (ổn) .-. Dựa vào link trên và [link](https://tools.thehacker.recipes/mimikatz/modules/lsadump/secrets), mình sẽ thực hiện dump offline password bằng [Mimikatz](https://github.com/gentilkiwi/mimikatz) trên máy ảo, đồng thời copy registry folder sang máy ảo luôn:
+![image](https://hackmd.io/_uploads/S14Xiq9cMl.png)
+`DefaultPassword` là `P@sswOrd-Print-2024`, ngoài ra mình cũng có một số thông tin liên quan đến `DPAPI_SYSTEM` như `m/u` (machine key/user key).
+- Tìm hiểu về `DPAPI_SYSTEM`:
+![image](https://hackmd.io/_uploads/S1Ox6cqqMx.png)
+Nói chung đây là một hệ thống giải mã và mã hóa mật khẩu, dữ liệu của các file quan trọng. Sau khi tham khảo [link](https://docs.specterops.io/ghostpack-docs/SharpDPAPI-mdx/commands/machinemasterkeys), thì bây giờ mình cần lấy masterkey của DPAPI (MasterKey dùng để bảo vệ các thông tin nhạy cảm trên máy). Hên sao mình tìm được một [blog tiếng Trung](https://developer.cloud.tencent.com/news/122795), và nó giải thích khá chi tiết cách lấy masterkey bằng Mimikatz. Mình đã có mã băm user trong `DPAPI_SYSTEM` là:
+![image](https://hackmd.io/_uploads/rJWmgjcqfl.png)
+Theo file trên thì đây chính là MasterKey file của chúng ta:
+![image](https://hackmd.io/_uploads/rkoH7iqqzg.png)
+Trong quá trình tìm cách crack tiếp bằng masterkey file thì mình tìm được [link](https://tools.thehacker.recipes/mimikatz/modules/dpapi/masterkey) và [link](https://github.com/gentilkiwi/mimikatz/wiki/howto-~-credential-manager-saved-credentials), mình sẽ thử dần những cách tìm được:
+![image](https://hackmd.io/_uploads/ByQYuicczg.png)
+Mình biết rằng Windows lưu trữ mật khẩu bằng NTLM hash, và [blog này](https://sec.vnpt.vn/2023/01/pth) giúp mình biết cách trích NTLM hash bằng Mimikatz:
+![image](https://hackmd.io/_uploads/BJzOioqqzl.png)
+![image](https://hackmd.io/_uploads/SyWosi55Gl.png)
+![image](https://hackmd.io/_uploads/BJMhooqczg.png)
+Và NTLM hash của user `printops` là `e54ed2e2bc605469ba8b3b827a633807`, ngoài ra còn có của các user khác nhưng trong challenge này mình không cần quan tâm đến. Thử xào nấu:
+![image](https://hackmd.io/_uploads/BJxtps5cfx.png)
+Nhưng cách này không ổn, vì để có được MasterKey thì cái mình cần là password đã crack chứ không phải hash. Vì mình đã tìm được `DefaultPassword` trước đó nên thử xem:
+![image](https://hackmd.io/_uploads/H1mPZ399Mx.png)
+Và thành công, mình tìm được masterkey là:
+    ```
+    d0079e173276629badddcf99201ed60adf2fd54be899443c38aa4113c89e86557b2e4c23e624ec57f60ddc616c91d608c40aa80daa6f24fdba5f0b80b46bae7b
+    ```
+    Trong cơ chế DPAPI, masterkey dùng để giải mã các dữ liệu nhạy cảm được lưu dưới dạng DPAPI blob của user.
+> Trước đó mình có thử dùng `hastcat` nhưng không ổn .-. 
+![image](https://hackmd.io/_uploads/HJEVJnqqfe.png)
+- Mình có các file sau trong `Users\printops\AppData\Roaming\Microsoft\Credentials\`:
+![image](https://hackmd.io/_uploads/Byaa4hccfg.png)
+Theo [link](https://www.1kosmos.com/resources/blog/windows-credential-manager), Windows Credential Manager quản lý thông tin đăng nhập một cách an toàn để user không cần phải nhớ hoặc tự quản lý các thông tin đó, thường nó quản lý hai loại thông tin:
+![image](https://hackmd.io/_uploads/HJ8OB299Gg.png)
+Và nó sử dụng DPAPI để quản lý. Nghĩa là mình có thể khai thác folder này để tìm thông tin liên quan đến máy in. Theo [link](https://tools.thehacker.recipes/mimikatz/modules/dpapi/cred), mình giải mã các cred file thì được hai output sau:
+![image](https://hackmd.io/_uploads/BkeZ_hc9Ml.png)
+![image](https://hackmd.io/_uploads/rkVMdh5cfx.png)
+- Trong `\ProgramData\PrintOps`, mình có file `agent.log`:
+![image](https://hackmd.io/_uploads/ry431k3cfl.png)
+Theo log trên thì file bị kẹt chưa bị xóa hẳn, nó được "held in spool cache", và user `svc_print` chính là acc dự phòng sau khi máy in gặp lỗi xác thực. Acc dự phòng này kết nối được với máy in, thực hiện in thì gặp lỗi kẹt giấy nên nó kích hoạt fallback bằng cách lấy password của acc dự phòng kết hợp với `agent-secret` để tạo key AES-256-GCM, sau đó mã hóa data trong `pending-job.bin`.
+Còn `agent.config` có nội dung như sau:
+    ``` config
+      <?xml version="1.0" encoding="utf-8" ?> 
+    - <!--  PrintOps Spool Monitor Agent - written by the installer, do not edit by hand 
+      --> 
+    - <printops-agent version="2.4.1">
+      <site>KMA-HN-PhongIn</site> 
+      <workstation>KMA-PRINT01</workstation> 
+      <spooler host="PRINT-SRV01" port="9100" queue="HP-M404-PhongIn" /> 
+      <telemetry endpoint="https://printops.kma.local/api/v2/ingest" interval="300" /> 
+    - <agent-secret scope="machine" encoding="utf-8" file="agent.secret.bin">
+    - <!--  same bytes kept inline for the installer rollback path 
+      --> 
+      <value>AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAAZH8Qi/MnjEWZbF70C2PygQQAAAACAAAAAAAQZgAAAAEAACAAAAAsYpaAtZbdriFBv+bewHti0CFihby4c3ZTIKyzsJ6RVgAAAAAOgAAAAAIAACAAAADNemGmYCYso+MtHOT7ae/2kagnu3KQbMU9Qhc+2VS7oiAAAABHuhi+pTKdM2W2B1O8PfI7yBNFwiExZUzw5Iy5THy9LEAAAAD9A7dMhoSPd+zthNCq4FqdIrdG3m+z0a8v0igBp3JfB3vSeZTYxwbW8u5MoGb937w2QZJ4Eadt6ufGQn/1n8Vl</value> 
+      </agent-secret>
+    - <spool-cache file="pending-job.bin" format="POPS/1">
+    - <!--  A job that cannot be flushed to the spooler is held on disk encrypted.
+             The wrapping key is derived at run time and is never written anywhere. 
+      --> 
+    - <kdf algorithm="HKDF-SHA256" info="PrintOps-Spool-v2" length="32">
+      <ikm source="fallback-identity" field="password" encoding="utf-8" /> 
+      <salt source="agent-secret" encoding="utf-8" /> 
+      </kdf>
+      <cipher algorithm="AES-256-GCM" nonce="12" tag="16" /> 
+      <layout>magic[4]="POPS" version[1] nonce[12] ciphertext-length[4,le] ciphertext[n] tag[16]</layout> 
+      </spool-cache>
+      </printops-agent>
+    ```
+    Đại loại thì, đoạn script trên dùng để giám sát máy in mạng qua API nội bộ. Có thể thấy rằng có một đoạn base64, thì nó được nhúng vào config file phòng khi trình cài đặt cần rollback, nghĩa là nội dung của base64 và `agent.secret.bin` hoàn toàn giống nhau. Ngoài ra, nếu máy in bị crashed, thì data không bị mất mà được lưu tạm vào `pending-job.bin`. Để giữ bí mật thì data được mã hóa bằng cách dùng HKDF-SHA256 để tạo ra một khóa dài 32 bytes khi thực thi, khóa này kết hợp giữa password từ `fallback-identity` và salt từ `agent-secret`. Còn data được thì được encrypted bằng AES-256-GCM. File có cấu trúc là:
+    - 4 byte đầu tiên là chữ `POPS`.
+    - 1 byte version.
+    - 12 byte Nonce.
+    - 4 byte chỉ định length.
+    - Encrypted data.
+    - 16 byte Tag.
+- Thử decrypt base64, rồi dùng Mimikatz để `dpapi::blob` theo [link](https://tools.thehacker.recipes/mimikatz/modules/dpapi/blob):
+![image](https://hackmd.io/_uploads/ByCBTk35fe.png)
+![image](https://hackmd.io/_uploads/rykxkkn9Gl.png)
+Trong khi tìm hiểu, mình đã biết được rằng masterkey thì cũng có hai loại, là của máy và của user. Cái trước đó mình tìm được là của user, thì bây giờ phần `guidMasterKey : {8b107f64-27f3-458c-996c-5ef40b63f281}` chính là của máy:
+![image](https://hackmd.io/_uploads/B1qXQy25Ge.png)
+Đây chính là masterkey file mình cần tìm. Tiếp tục đẩy nó vào máy ảo rồi xào bằng Mimikatz:
+![image](https://hackmd.io/_uploads/SJoPIy35zx.png)
+Với `/system` là `m` trong `m/u` mà ban đầu đã tìm được. Key vừa tìm được sẽ được tool đưa vào cache, quay lại chạy thêm `/unprotect` để nó giải mã:
+![image](https://hackmd.io/_uploads/HJgfvkncGl.png)
+Mình đã có được data là `41 39 66 2d 4d 30 6e 31 74 30 72 2d 32 30 32 34 2d 4b 4d 41`. Chuyển hex sang ASCII thì mình được nội dung của `agent-secret.bin`, cũng chính là salt:
+![image](https://hackmd.io/_uploads/r1utvk35Ml.png)
+Cần tìm hiểu qua về [HKDF](https://en.wikipedia.org/wiki/HKDF):
+![image](https://hackmd.io/_uploads/ry3QYk39zx.png)
+Mình đã có:
+    - `ikm` (input key material) = `Pr1nt-Fallback!2026`
+    - `salt` = `A9f-M0n1t0r-2024-KMA`
+    - `info` = `PrintOps-Spool-v2`
+- Chạy script sau để giải mã `pending-job.bin`:
+    ``` py
+    from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+    from cryptography.hazmat.primitives.hashes import SHA256
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    key = HKDF(SHA256(), 32, b"A9f-M0n1t0r-2024-KMA", b"PrintOps-Spool-v2").derive(b"Pr1nt-Fallback!2026")
+    d = open(r"C:\Users\Ha Nguyen\Desktop\CTF\Printeremembers\ProgramData\PrintOps\pending-job.bin", "rb").read()
+    print(AESGCM(key).decrypt(d[5:17], d[21:], None).decode("utf-8", "replace"))
+    ```
+    Và được output là:
+    ```
+    --- PRINT JOB #4471 ------------------------------------
+    Queue    : HP-M404-PhongIn
+    Owner    : svc_print
+    Submitted: 2026-03-14 08:12:03
+    Document : BanGiao-TaiKhoan-QuanTri.txt
+    Status   : HELD (spooler reported device error)
+    --------------------------------------------------------
+
+    Tai khoan quan tri may chu in \\PRINT-SRV01
+
+        user: printadmin
+        pass: KMACTF{tw0_sc0p3s_0n3_sp00l_j0b_9fa15417}
+
+    Doi mat khau nay ngay sau khi nhan ban giao.
+    Khong luu tai lieu nay tren may kiosk.
+    ```
+
+### c) Kết quả:
+`KMACTF{tw0_sc0p3s_0n3_sp00l_j0b_9fa15417}`
