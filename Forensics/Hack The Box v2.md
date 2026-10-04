@@ -804,3 +804,213 @@ print(sum(int(x,16) for x in ['1529f07e833d46000'])/10**18)
 ```
 
 **Answer:** `24.40023`
+
+### XIII. CrewCrow:
+> - Link lab: https://app.hackthebox.com/sherlocks/CrewCrow?tab=play_sherlock
+> - Đề bài:
+> ![image](https://hackmd.io/_uploads/Hy44qBa9Gx.png)
+> - File tham khảo: [MT_OHoffmann.pdf](https://it-forensik.fiw.hs-wismar.de/images/8/8e/MT_OHoffmann.pdf)
+
+#### 1. Identify the conferencing application used by CrewCrow members for their communications.
+Using FTK Imager to analyse this challenge. In `C/Users/Nefarious/Desktop/CrewCrow_Terms_and_Conditions.txt`:
+![image](https://hackmd.io/_uploads/H1IRoK0qze.png)
+They use Zoom for their meeting.
+
+**Answer:** `Zoom`
+
+#### 2. Determine the last time Nefarious used the conferencing application.
+In `C/Windows/Prefetch/`, we have `ZOOM.EXE-F882A381.pf`. Analyse this file by PECmd:
+![image](https://hackmd.io/_uploads/SkIUJ9AcGg.png)
+The last time this meeting application runned is `2024-07-16 09:02:02`.
+
+**Answer:** `2024-07-16 09:02:02`
+
+#### 3. Where is the conferencing application's data stored?
+Its data is stored in `C:\Users\Nefarious\AppData\Roaming\Zoom\data`:
+![image](https://hackmd.io/_uploads/rkMag5R5Me.png)
+
+**Answer:** `C:\Users\Nefarious\AppData\Roaming\Zoom\data`
+
+#### 4. Which Windows data protection service is used to secure the conferencing application's database files?
+It uses DPAPI to protect its database:
+![image](https://hackmd.io/_uploads/HJj_Z5Aczg.png)
+
+**Answer:** `hardhat@2.22.18`
+
+#### 5. Determine the sign-in option used by Nefarious.
+In the above image, they said that Windows password of the user will be used in DPAPI.
+![image](https://hackmd.io/_uploads/Sywqv905Ge.png)
+Beside that, some sign-in option in Windows:
+![image](https://hackmd.io/_uploads/r1Cy_50qGg.png)
+I guess that `Password` is the correct answer.
+
+**Answer:** `Password`
+
+
+#### 6. Retrieve the password used by Nefarious
+- Check for `SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon`, maybe there has `DefautPassword` in there:
+![image](https://hackmd.io/_uploads/S1Nt_5AqMl.png)
+But there is nothing :) Search the information of WinLogon, I found that the password will be store in LSA:
+![image](https://hackmd.io/_uploads/Hk77Y50cGl.png)
+- Check for `SECURITY\Policy\Secrets`:
+![image](https://hackmd.io/_uploads/HJK8F9C5Ml.png)
+![image](https://hackmd.io/_uploads/ryZ5Y9R5Ge.png)
+`DefaultPassword` was deleted.
+- Try using Mimikatz to dump the secret, but I cannot find the password by this way:
+![image](https://hackmd.io/_uploads/BkRZ69C5Ml.png)
+But we have some important data.
+- To find the user masterkey, I need the user masterkey file in `C:\Users\Nefarious\AppData\Roaming\Microsoft\Protect\`:
+![image](https://hackmd.io/_uploads/H1qZMiC5zl.png)
+According to the above image, `SID` user is `S-1-5-21-3675116117-3467334887-929386110-1001`. Using `DPAPImk2john` to generate hash:
+![image](https://hackmd.io/_uploads/HJv5soA9fx.png)
+Because there are 15 characters in the password, we will filter strings having 15 chars in `rockyou.txt`, then using `hashcat` to crack the password:
+![image](https://hackmd.io/_uploads/rJnF42CcGg.png)
+![image](https://hackmd.io/_uploads/HyxbShC5fl.png)
+
+**Answer:** `ohsonefarious92`
+
+#### 7. Find the key derivation function iterations used in the encryption process of the conferencing application's database.
+There are three database files of Zoom in `C:\Users\Nefarious\AppData\Roaming\Zoom\data\`:
+![image](https://hackmd.io/_uploads/HyZWIA1oMl.png)
+In [this link](https://www.reddit.com/r/computerforensics/comments/kch7ot/zoom_artifacts_encrypted_dbs/), I saw some details about database of Zoom is encrypted:
+![image](https://hackmd.io/_uploads/Hy6lcCkiMl.png)
+The above script used to decrypt `zoomus.enc.db`. In this script:
+```
+PRAGMA kdf_iter = '4000';
+PRAGMA cipher_page_size = 1024;
+```
+[SQLCipher](https://www.zetetic.net/sqlcipher/design/) is used to encrypted database of Zoom.
+> We can get the answer in `MT_OHoffmann.pdf`:
+> ![image](https://hackmd.io/_uploads/SkiDhxesGx.png)
+
+**Answer:** `4000`
+
+#### 8. Find the key derivation function page size used in the encryption process.
+According to the last question.
+
+**Answer:** `1024`
+
+#### 9. Identify Nefarious email address.
+Because of the encrypted database, we cannot open these file directly:
+![image](https://hackmd.io/_uploads/BygD20koGl.png)
+I found [this link](https://infosecwriteups.com/decrypting-zoom-team-chat-forensic-analysis-of-encrypted-chat-databases-394d5c471e60) guiding how to decrypt `.db`, so I will follow it.
+
+##### Finding the main_key linked to the main database:
+> In reference file:
+> ![image](https://hackmd.io/_uploads/SyQUTggszl.png)
+
+`zoom.us.ini` contains the key to decrypt the main database, and it is encrypted by DPAPI.
+![image](https://hackmd.io/_uploads/HJenzJeiGl.png)
+Its content:
+```
+[ZoomChat]
+win_osencrypt_key=ZWOSKEYAQAAANCMnd8BFdERjHoAwE/Cl+sBAAAANKu7KG7QckOmM9kk+6swGwAAAAACAAAAAAAQZgAAAAEAACAAAADJx9AI6i9CEvRYhIK10gayvm5YyrBN9LxAjHylMKgQ0QAAAAAOgAAAAAIAACAAAAC2EfbilZ5wE8mRW0xeUP0IcyQCufOYKa7MbOFXLSdvBzAAAAB94pzf6DE7fRhpJ2tbIsw3ZtYaDKlb3ncvT16Jlwj44rMGIbIYWZtMBVbRV1U8PwNAAAAARwtW+e31mKSZeh4igd735aC1hB4J/8Ye93i0IhDeXBMFbAMWWBwLz77OuZa8spLkcKfYpGQF63fXVvJkxjmnpA==
+com.zoom.client.langid=1033
+```
+It starts with marker `ZWOSKEY`, the next is a long base64 code. To extract the encrypted key, we have to parse the value of `win_osencrypt_key` and bypass the `ZWOSKEY` prefix, leaving the base64-encoded DPAPI blob.
+![image](https://hackmd.io/_uploads/rJpdPkeizx.png)
+Then, we have to find masterkey file and user's password, and we've done this before:
+![image](https://hackmd.io/_uploads/B1vPNkeoMl.png)
+![image](https://hackmd.io/_uploads/BkJ_Eyxjfl.png)
+Dump the masterkey:
+![image](https://hackmd.io/_uploads/B1VpYkgiGx.png)
+Then use this masterkey and `.blob` to get the data:
+![image](https://hackmd.io/_uploads/BJuuqkloGg.png)
+Our data is:
+```
+57 32 6b 2b 30 32 47 7a 42 56 65 5a 4b 4a 68 58 73 6e 52 49 71 4e 72 74 72 57 56 55 42 41 76 73 30 67 4c 4e 65 35 32 7a 58 4b 77 3d
+```
+Convert it to ASCII, we get the main_key:
+![image](https://hackmd.io/_uploads/SythcJlozg.png)
+The main_key is `W2k+02GzBVeZKJhXsnRIqNrtrWVUBAvs0gLNe52zXKw=`.
+
+##### Decrypting main database:
+Using [DB Browser for SQLite](https://sqlitebrowser.org/dl/) to open `zoomus.enc.db` database:
+![image](https://hackmd.io/_uploads/S1V-TJgjMl.png)
+![image](https://hackmd.io/_uploads/H1VQp1ejMl.png)
+Do a query:
+![image](https://hackmd.io/_uploads/H1VxRkxsMl.png)
+And we got his email.
+
+**Answer:** `2025-03-01 04:22:01`
+
+#### 10. What is the Meeting ID?
+We can see that most of the data in `zoom_user_account_enc` is encrypted:
+![image](https://hackmd.io/_uploads/HyIWlleifg.png)
+In [this link](https://www.sciencedirect.com/science/article/pii/S2666281721000019#sec5), I found that the value of Meeting ID is held in `zoom_kv` table:
+![image](https://hackmd.io/_uploads/rksqGeesGx.png)
+Some fields in this table:
+![image](https://hackmd.io/_uploads/S1JAMegszg.png)
+I found the following pair of key and value:
+![image](https://hackmd.io/_uploads/SyjaQeesMe.png)
+Its value:
+```
+RNpZaXfokRphhecoO6sHn9U02wtiPGaxi8UuhoAMGM2MEe175kZQQ2d7/Bk6WjUc4bz5EFCFpvrwYy/KTd56mA==
+```
+In page 54 of `MT_OHoffmann.pdf`:
+![image](https://hackmd.io/_uploads/r1KrybxsGx.png)
+In general, this field is encrypted by AES-256-CBC, with the key is user SID and the IV is SHA-256 of user SID. So, we have the following decrypted script:
+``` py
+import hashlib
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import unpad
+import base64
+
+sid = b"S-1-5-21-3675116117-3467334887-929386110-1001"
+key = hashlib.sha256(sid).digest()
+iv = hashlib.sha256(key).digest()[:0x10]
+
+data_b64 = "RNpZaXfokRphhecoO6sHn9U02wtiPGaxi8UuhoAMGM2MEe175kZQQ2d7/Bk6WjUc4bz5EFCFpvrwYy/KTd56mA=="
+cipher_text = base64.b64decode(data_b64)
+
+cipher = AES.new(key, AES.MODE_CBC, iv)
+plain_text = unpad(cipher.decrypt(cipher_text), AES.block_size)
+print(plain_text)
+```
+Our output is `86233834426|Nefarious Leet's Zoom Meeting;100000`.
+
+**Answer:** `86233834426`
+
+#### 11. Retrieve the password used to encrypt the plan PDF file from the meeting chat.
+I found this information:
+![image](https://hackmd.io/_uploads/rJXAmWxoGx.png)
+Make a query in `zoomeeting.enc.db`, and I see the password, as well as all the messages in the meeting:
+![image](https://hackmd.io/_uploads/H1qt4ZljGl.png)
+```
+S1mple please send the plan file so we all can have a look while we're discussing the plan.
+
+Ok Boss
+
+The password is "EOztYmVeUxp6TmV"
+
+CrewCrow gathers, minds so sharp,
+Their plan a symphony, dark and stark.
+
+In shadows deep, where whispers bind,
+A plot unfolds, by cunning minds.
+CrewCrow gathers, sharp and sly,
+Their plan a storm beneath the sky.
+
+Funds flow through the darkened streams,
+Cryptic trails and silent schemes.
+CrewCrow’s shadow fades away,
+Leaving chaos in disarray.
+
+Doomsday whispers through the night,
+A tale of fear, a tale of might.
+From hidden realms their shadows grow,
+Leaving behind a world of woe.🫡
+```
+
+**Answer:** `EOztYmVeUxp6TmV`
+
+#### 12. Discover the location from which the upcoming cyber-attack will be launched.
+There are two child folder of their operation in `C:\Users\Nefarious\Documents\Operations\`:
+![image](https://hackmd.io/_uploads/BJw9U-gjzx.png)
+All we need for this task is the file in `Pending` folder:
+![image](https://hackmd.io/_uploads/rJl4D-liMg.png)
+In the plan file:
+![image](https://hackmd.io/_uploads/BJPKPZgszx.png)
+It's `Eastern Europe`.
+
+**Answer:** `Eastern Europe`
