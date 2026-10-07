@@ -1014,3 +1014,130 @@ In the plan file:
 It's `Eastern Europe`.
 
 **Answer:** `Eastern Europe`
+
+### XIV. Easy Money:
+> - Link lab: https://app.hackthebox.com/sherlocks/Easy%2520Money?tab=play_sherlock
+> - Đề bài:
+> ![image](https://hackmd.io/_uploads/Byxl29gofg.png)
+
+#### 1. At what exact time did the user execute the malicious shortcut file?
+In `NTUSER.DAT\Software\Microsoft\Windows\Currentversion\Explorer\UserAssist\`, we see there is `.lnk` file whose name is `GiveAways`:
+![image](https://hackmd.io/_uploads/SJZvd7ZiGx.png)
+The last time that this file was executed is `2025-01-26 16:17:15`.
+
+**Answer:** `2025-01-26 16:17:15`
+
+#### 2. The previous malicious file executed an initial payload. What is the full path of this payload?
+After checking for BAM, DAM, Prefetch File, `NTUSER.DAT\Software\Microsoft\Windows\Currentversion\Explorer\UserAssist\` and found nothing, I check `$MFT` by using MFTExplorer. And I see all the directory in user's computer, including `2025-GiveAways.lnk` in `Downloads`:
+![image](https://hackmd.io/_uploads/r1IlWN-szg.png)
+In `C:\Temp\`:
+![image](https://hackmd.io/_uploads/ryPwQE-iMx.png)
+There is an `.exe` file created in `16:17:17`, and its name is `svchOst.exe`, instead of `svchost.exe`. This is so suspicious. Besides that, if I check for `Windows PowerShell.evtx`:
+![image](https://hackmd.io/_uploads/BJ6JPNWoMl.png)
+The above PowerShell script download `svchOst.exe` from https://github.com/M4shl3/okiii/raw/main/svchost.exe.
+
+**Answer:** `C:\Temp\svchOst.exe`
+
+#### 3. At what timestamp did the payload execute and grant the attacker shell access?
+The last accessed time of `svchOst.exe` is `2025-01-26 16:17:54`.
+
+**Answer:** `2025-01-26 16:17:54`
+
+#### 4. What is the command line the attacker used to enumerate installed packages on the system?
+In `Windows PowerShell.evtx`:
+![image](https://hackmd.io/_uploads/By59PVWoMe.png)
+
+**Answer:** `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command Get-Package`
+
+#### 5. Which application did the attacker identify as vulnerable?
+Finding applications in `NTUSERS.DAT\SOFTWARE\Microsoft\Windows\CurrentVersion\Unistall`:
+![image](https://hackmd.io/_uploads/BkALHaWjfl.png)
+Search in Google:
+![image](https://hackmd.io/_uploads/rkIRnaWsMx.png)
+This application can be attacked by hijacking through a unstrusted path to download an `.dll`. Check for history of browser in `C\Users\Administrator\AppData\Local\Microsoft\Edge\User Data\Default\History`:
+![image](https://hackmd.io/_uploads/SyPkJR-ozg.png)
+Make a query:
+![image](https://hackmd.io/_uploads/S1O0RaZizx.png)
+Beside that, I saw this message:
+![image](https://hackmd.io/_uploads/HkEw5N-sMx.png)
+![image](https://hackmd.io/_uploads/r1K_qVZsfe.png)
+This means something is in danger, the timestamp of this event is about `16:38`. Using MFTCmd to extract a `.csv` file to find the timestamp around `16:38`, when a file is created:
+![image](https://hackmd.io/_uploads/Sy84zrZjfl.png)
+Here I saw some files, especially `.dll`:
+![image](https://hackmd.io/_uploads/rJ1djp-iMg.png)
+I guess that application is `YandexBrowser`.
+
+**Answer:** `YandexBrowser`
+
+#### 6. What version of that vulnerable application did the attacker identify?
+Beside the above question, in `Program Files (x86)`:
+![image](https://hackmd.io/_uploads/rywtKHZsMe.png)
+Its version is `24.4.5.498`.
+
+> We can also find the information of Yandex in `Amcache.hve`:
+> ![image](https://hackmd.io/_uploads/By7Fntzszx.png)
+
+**Answer:** `24.4.5.498`
+
+#### 7. What is the CVE associated with this vulnerability?
+Search the name and version of this vulnerable application on Google:
+![image](https://hackmd.io/_uploads/SycicS-ofe.png)
+It's `CVE-2024-6473`.
+
+**Answer:** `CVE-2024-6473`
+
+#### 8. What is the name of the legitimate binary that the attacker used to deliver the malicious payload and establish persistence on the compromised system?
+Check for prefetch file having timeline around `16:36`.
+![image](https://hackmd.io/_uploads/rkdqh0-iGl.png)
+They was downloaded by `CERTUTIL.EXE` at `16:36`. 
+**Answer:** `certutil.exe`
+
+#### 9. What is the name of the malicious Portable Executable (PE) file that enabled him to accomplish his objective?
+We've found this before:
+![image](https://hackmd.io/_uploads/ByXxuFzoGl.png)
+
+**Answer:** `wldp.dll`
+
+#### 10. What is the SHA-256 hash of that malicious file?
+At the same timestamp when `wldp.dll` was downloaded:
+![image](https://hackmd.io/_uploads/B10bNqMoGg.png)
+`C:\Windows\System32\config\systemprofile\AppData\LocalLow\Microsoft\CryptnetUrlCache` is the cache folder of CryptoAPI (Windows crypt32), the filename in this folder is MD5 of download URL used to check digital signs or certificates. I will find the information of `A16B2E6DE64B13EDF2C00F32C4559930` because it has the same size of `wldp.dll`:
+![image](https://hackmd.io/_uploads/SJ_aSqfsGl.png)
+And its signature byte starts with `MZ`, so this is `.exe` file:
+![image](https://hackmd.io/_uploads/r1ozL9MoGl.png)
+Get its SHA256:
+![image](https://hackmd.io/_uploads/r1NnD5zozg.png)
+
+**Answer:** `A1A17EBD90610D808E761811D17DA3143F3DE0D4CC5EE92BD66000DCA87D9270`
+
+#### 11. How many milliseconds of cumulative coded sleep delays occurred before the C2 binary provided a shell after the vulnerable application was launched?
+Let's Detect It Easy:
+![image](https://hackmd.io/_uploads/HyhFucMoze.png)
+This malicious file was writed in C++, so we will use IDA to analyse it:
+![image](https://hackmd.io/_uploads/H1E_WRQjzx.png)
+![image](https://hackmd.io/_uploads/ryGK-CmsGe.png)
+`2710` is `10000` in dec, and `3E8` is `1000`
+**Answer:** `11000`
+
+#### 12. What is the mutex name used to ensure only one instance of the C2 binary runs at a time?
+![image](https://hackmd.io/_uploads/H1fxbAXiGl.png)
+
+**Answer:** `Global\\YandaExeMutex`
+
+#### 13. What is the full path of the Command and Control (C2) Binary?
+![image](https://hackmd.io/_uploads/ryS7WRXsfg.png)
+![image](https://hackmd.io/_uploads/SJcKppXifx.png)
+
+**Answer:** `C:\Users\Administrator\AppData\Local\Temp\yanda.tmp`
+
+#### 14. What is the name of the C2 framework used by the attacker?
+According to and similar to task 10, upload `yanda.tmp` (or `DE69F438F13416BEDB3F9D0DBC8165A8` in `C\Users\Administrator\AppData\LocalLow\Microsoft\CryptnetUrlCache\Content`) in VirusTotal:
+![image](https://hackmd.io/_uploads/rJOom0XiMx.png)
+
+**Answer:** `sliver`
+
+#### 15. What is the IP address and port number of the malicious C2 server used by the attacker?
+In VirusTotal:
+![image](https://hackmd.io/_uploads/B1vgERmozx.png)
+
+**Answer:** `18.192.12.126:8888`
